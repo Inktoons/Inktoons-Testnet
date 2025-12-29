@@ -95,7 +95,10 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     useEffect(() => {
         const loadInitialData = async () => {
             setLoading(true);
+
+            // 1. Prioridad: Datos en la nube (Supabase) si hay usuario
             if (user?.uid) {
+                console.log("[UserData] Cargando datos desde Supabase para:", user.uid);
                 const cloudData = await SupabaseService.getUserData(user.uid);
                 if (cloudData) {
                     setUserData(prev => ({ ...prev, ...cloudData }));
@@ -103,13 +106,15 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
                     return;
                 }
             }
+
+            // 2. Fallback: LocalStorage
             const stored = localStorage.getItem("inktoons_user_data");
             if (stored) {
                 try {
                     const parsed = JSON.parse(stored);
                     setUserData(prev => ({ ...prev, ...parsed }));
                 } catch (e) {
-                    console.error("Failed to parse user data", e);
+                    console.error("[UserData] Error cargando desde localStorage:", e);
                 }
             }
             setLoading(false);

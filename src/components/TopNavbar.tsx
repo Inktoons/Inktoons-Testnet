@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Search, Bell, User, Crown, Wallet, Languages, Globe } from "lucide-react";
+import { Search, Bell, User, Crown, Wallet, Languages, Globe, RefreshCcw } from "lucide-react";
 import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -138,11 +138,23 @@ export default function TopNavbar() {
                     </div>
                 ) : (
                     <button
-                        onClick={authenticate}
+                        onClick={() => {
+                            if (loading) return;
+                            authenticate().catch(e => {
+                                console.error("Login component error:", e);
+                            });
+                        }}
                         disabled={loading}
-                        className={`btn-tapas text-xs md:text-sm shadow-sm py-2 px-4 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`btn-tapas text-xs md:text-sm shadow-sm py-2.5 px-6 flex items-center gap-2 transform active:scale-95 transition-all ${loading ? 'opacity-70 cursor-wait bg-gray-400' : 'bg-pi-purple hover:bg-pi-purple-dark text-white'}`}
                     >
-                        {loading ? "..." : t('nav_connect')}
+                        {loading ? (
+                            <>
+                                <RefreshCcw size={16} className="animate-spin" />
+                                <span>{language === 'es' ? 'Cargando...' : 'Loading...'}</span>
+                            </>
+                        ) : (
+                            t('nav_connect')
+                        )}
                     </button>
                 )}
             </div>

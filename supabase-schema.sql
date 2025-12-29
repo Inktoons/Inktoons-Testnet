@@ -49,6 +49,18 @@ CREATE TABLE IF NOT EXISTS user_data (
     unlocked_chapters TEXT[] DEFAULT '{}',
     favorites TEXT[] DEFAULT '{}',
     reading_history TEXT[] DEFAULT '{}',
+    following TEXT[] DEFAULT '{}',
+    ratings JSONB DEFAULT '{}',
+    last_read JSONB DEFAULT '{}',
+    read_chapters JSONB DEFAULT '{}',
+    profile_image TEXT,
+    notifications JSONB DEFAULT '[]',
+    censorship_enabled BOOLEAN DEFAULT true,
+    wallet_address TEXT,
+    subscription JSONB,
+    liked_chapters TEXT[] DEFAULT '{}',
+    is_founder BOOLEAN DEFAULT false,
+    missions JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );

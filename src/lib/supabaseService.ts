@@ -297,14 +297,26 @@ export class SupabaseService {
             if (error && error.code !== 'PGRST116') throw error;
             if (!data) return null;
 
+            // Mapeamos los campos de la base de datos a los campos del contexto
             return {
                 favorites: data.favorites || [],
                 history: data.reading_history || [],
+                following: data.following || [],
+                ratings: data.ratings || {},
+                lastRead: data.last_read || {},
+                readChapters: data.read_chapters || {},
+                profileImage: data.profile_image || undefined,
                 balance: data.inks || 0,
+                notifications: data.notifications || [],
+                censorshipEnabled: data.censorship_enabled ?? true,
+                walletAddress: data.wallet_address || "",
+                subscription: data.subscription || undefined,
+                likedChapters: data.liked_chapters || [],
+                isFounder: data.is_founder || false,
                 missions: data.missions || null,
             };
         } catch (error) {
-            console.error('Error fetching user data:', error);
+            console.error('Error fetching user data from Supabase:', error);
             return null;
         }
     }
@@ -320,9 +332,21 @@ export class SupabaseService {
                 updated_at: new Date().toISOString()
             };
 
+            // Mapeamos todos los campos del contexto a la base de datos
             if (data.balance !== undefined) upsertData.inks = data.balance;
             if (data.favorites !== undefined) upsertData.favorites = data.favorites;
             if (data.history !== undefined) upsertData.reading_history = data.history;
+            if (data.following !== undefined) upsertData.following = data.following;
+            if (data.ratings !== undefined) upsertData.ratings = data.ratings;
+            if (data.lastRead !== undefined) upsertData.last_read = data.lastRead;
+            if (data.readChapters !== undefined) upsertData.read_chapters = data.readChapters;
+            if (data.profileImage !== undefined) upsertData.profile_image = data.profileImage;
+            if (data.notifications !== undefined) upsertData.notifications = data.notifications;
+            if (data.censorshipEnabled !== undefined) upsertData.censorship_enabled = data.censorshipEnabled;
+            if (data.walletAddress !== undefined) upsertData.wallet_address = data.walletAddress;
+            if (data.subscription !== undefined) upsertData.subscription = data.subscription;
+            if (data.likedChapters !== undefined) upsertData.liked_chapters = data.likedChapters;
+            if (data.isFounder !== undefined) upsertData.is_founder = data.isFounder;
             if (data.missions !== undefined) upsertData.missions = data.missions;
 
             const { error } = await supabase
@@ -331,7 +355,7 @@ export class SupabaseService {
 
             if (error) throw error;
         } catch (error) {
-            console.error('Error saving user data:', error);
+            console.error('Error saving user data to Supabase:', error);
         }
     }
 }

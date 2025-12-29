@@ -65,6 +65,24 @@ export default function WalletPage() {
         return () => clearInterval(interval);
     }, []);
 
+    // Temporizador de seguridad para evitar que el spinner se quede infinito
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (loadingPack !== null || loadingPass !== null) {
+            console.log("[Wallet] Temporizador de seguridad iniciado (25s)");
+            timer = setTimeout(() => {
+                if (loadingPack !== null || loadingPass !== null) {
+                    console.log("[Wallet] Tiempo de espera agotado. Reseteando estados de carga.");
+                    setLoadingPack(null);
+                    setLoadingPass(null);
+                }
+            }, 25000); // 25 segundos de seguridad (más razonable)
+        }
+        return () => {
+            if (timer) clearTimeout(timer);
+        };
+    }, [loadingPack, loadingPass]);
+
     // Function to calculate Pi Price based on USD target
     const calculatePiPrice = (usdTarget: number) => {
         if (!currentPiValue) return "---";
@@ -153,7 +171,7 @@ export default function WalletPage() {
         replaceMission(missionId);
     };
 
-    const handlePassPurchase = (pass: typeof earlyAccessPasses[0]) => {
+    const handlePassPurchase = async (pass: typeof earlyAccessPasses[0]) => {
         if (!user) {
             alert(t('wallet_must_connect'));
             return;
@@ -167,23 +185,27 @@ export default function WalletPage() {
         const piCost = (pass as any).pricePi || Number(calculatePiPrice(pass.priceUsd));
 
         setLoadingPass(pass.id);
+        console.log(`[Wallet] Iniciando compra de pase: ${pass.id}`);
 
-        createPayment(
-            piCost,
-            `${t('wallet_subscription')} ${pass.label}`,
-            { passId: pass.id, type: 'subscription' }, // Metadata
-            () => { // onSuccess callback
-                setLoadingPass(null);
-                const subType = pass.id.replace('pass_', '') as '1m' | '6m' | '1y';
-                setSubscription(subType, pass.durationTime); // Update context
-                alert(`${t('wallet_subscription_success')} ${pass.duration}.`);
-            }
-        ).catch(() => {
+        try {
+            await createPayment(
+                piCost,
+                `${t('wallet_subscription')} ${pass.label}`,
+                { passId: pass.id, type: 'subscription' }
+            );
+
+            // Si llegamos aquí, el pago fue exitoso
+            const subType = pass.id.replace('pass_', '') as '1m' | '6m' | '1y';
+            setSubscription(subType, pass.durationTime);
+            alert(`${t('wallet_subscription_success')} ${pass.duration}.`);
+        } catch (error: any) {
+            console.log(`[Wallet] La compra del pase terminó o fue cancelada:`, error);
+        } finally {
             setLoadingPass(null);
-        });
+        }
     };
 
-    const handlePurchase = (pack: typeof packs[0]) => {
+    const handlePurchase = async (pack: typeof packs[0]) => {
         if (!user) {
             alert(t('wallet_must_connect'));
             return;
@@ -197,20 +219,24 @@ export default function WalletPage() {
         const piCost = Number(calculatePiPrice(pack.priceUsd));
 
         setLoadingPack(pack.id);
+        console.log(`[Wallet] Iniciando compra de pack: ${pack.id}`);
 
-        createPayment(
-            piCost,
-            `${t('wallet_purchase_of')} ${pack.label} (${pack.amount + pack.bonus} Inks)`,
-            { packId: pack.id, credits: pack.amount + pack.bonus }, // Metadata
-            () => { // onSuccess callback
-                const total = pack.amount + pack.bonus;
-                addBalance(total);
-                setLoadingPack(null);
-                alert(`${t('wallet_purchase_success')} ${total} Inks.`);
-            }
-        ).catch(() => {
+        try {
+            await createPayment(
+                piCost,
+                `${t('wallet_purchase_of')} ${pack.label} (${pack.amount + pack.bonus} Inks)`,
+                { packId: pack.id, credits: pack.amount + pack.bonus }
+            );
+
+            // Si llegamos aquí, el pago fue exitoso
+            const total = pack.amount + pack.bonus;
+            addBalance(total);
+            alert(`${t('wallet_purchase_success')} ${total} Inks.`);
+        } catch (error: any) {
+            console.log(`[Wallet] La compra del pack terminó o fue cancelada:`, error);
+        } finally {
             setLoadingPack(null);
-        });
+        }
     };
 
     return (
@@ -355,8 +381,18 @@ export default function WalletPage() {
 
                                 {/* Loading Overlay */}
                                 {loadingPass === pass.id && (
-                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
-                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black"></div>
+                                    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-10 p-4 text-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pi-purple mb-3"></div>
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter mb-2">Procesando con Pi...</p>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setLoadingPass(null);
+                                            }}
+                                            className="text-[9px] bg-gray-100 px-2 py-1 rounded-full font-black text-gray-400 hover:text-red-500 transition-colors"
+                                        >
+                                            REINTENTAR / CANCELAR
+                                        </button>
                                     </div>
                                 )}
                             </motion.button>
@@ -410,8 +446,18 @@ export default function WalletPage() {
 
                                 {/* Loading Overlay */}
                                 {loadingPack === pack.id && (
-                                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
-                                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-black"></div>
+                                    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-10 p-4 text-center">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pi-purple mb-3"></div>
+                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter mb-2">Procesando con Pi...</p>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setLoadingPack(null);
+                                            }}
+                                            className="text-[9px] bg-gray-100 px-2 py-1 rounded-full font-black text-gray-400 hover:text-red-500 transition-colors"
+                                        >
+                                            REINTENTAR / CANCELAR
+                                        </button>
                                     </div>
                                 )}
                             </motion.button>
