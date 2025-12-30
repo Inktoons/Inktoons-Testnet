@@ -7,20 +7,25 @@ export default function MobileDebugConsole() {
     const [isVisible, setIsVisible] = useState(true);
 
     useEffect(() => {
+        // Helper to format args
+        const formatArgs = (args: any[]) => args.map(arg => {
+            if (arg instanceof Error) return `${arg.name}: ${arg.message}`;
+            if (typeof arg === 'object') return JSON.stringify(arg);
+            return String(arg);
+        }).join(' ');
+
         // Intercept console.log
         const originalLog = console.log;
         console.log = (...args) => {
             originalLog(...args);
-            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
-            setLogs(prev => [`[LOG] ${message}`, ...prev].slice(0, 50));
+            setLogs(prev => [`[LOG] ${formatArgs(args)}`, ...prev].slice(0, 50));
         };
 
         // Intercept console.error
         const originalError = console.error;
         console.error = (...args) => {
             originalError(...args);
-            const message = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
-            setLogs(prev => [`[ERR] ${message}`, ...prev].slice(0, 50));
+            setLogs(prev => [`[ERR] ${formatArgs(args)}`, ...prev].slice(0, 50));
         };
 
         // Intercept global errors
