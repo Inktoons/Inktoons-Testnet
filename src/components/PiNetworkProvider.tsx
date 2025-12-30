@@ -86,48 +86,23 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     }, [handleIncompletePayment]);
 
     useEffect(() => {
-        let isActive = true;
-        let pollInterval: NodeJS.Timeout;
-
-        const initPi = async () => {
-            if (!window.Pi) {
-                console.log("[Pi SDK] Esperando al SDK...");
-                pollInterval = setTimeout(initPi, 500);
-                return;
-            }
-
-            if (initialized.current) return;
-
-            try {
-                console.log("[Pi SDK] Inicializando SDK...");
-                await window.Pi.init({
-                    version: "2.0",
-                    sandbox: true,
-                    onIncompletePaymentFound: handleIncompletePayment
-                });
-
-                console.log("[Pi SDK] SDK inicializado correctamente");
-                initialized.current = true;
-
+        // Como el SDK se inicializa en layout.tsx, solo necesitamos checkear si está listo
+        const checkPiReady = () => {
+            if (window.Pi) {
+                // Ya está listo
                 if (localStorage.getItem("pi_logged_in") === "true") {
                     console.log("[Pi SDK] Re-autenticando sesión previa...");
-                    await authenticate(true);
+                    authenticate(true);
                 }
-
-                if (isActive) setLoading(false);
-            } catch (error) {
-                console.error("[Pi SDK] Error crítico en init:", error);
-                if (isActive) setLoading(false);
+                setLoading(false);
+            } else {
+                // Reintentar en un momento
+                setTimeout(checkPiReady, 500);
             }
         };
 
-        initPi();
-
-        return () => {
-            isActive = false;
-            if (pollInterval) clearTimeout(pollInterval);
-        };
-    }, [authenticate, handleIncompletePayment]);
+        checkPiReady();
+    }, [authenticate]);
 
     const createPayment = async (amount: number, memo: string, metadata: any, onSuccess?: () => void) => {
         if (!window.Pi || !user) {
