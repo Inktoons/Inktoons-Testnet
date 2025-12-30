@@ -45,11 +45,11 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     const authenticate = useCallback(async (isAuto = false) => {
         if (!window.Pi) return;
 
-        const scopes = ["username", "payments"];
+        const scopes = ["username", "payments", "wallet_address"];
         console.log("[Pi SDK] Llamando a Pi.authenticate con scopes:", scopes);
         try {
-            // Llamada simple sin el callback manual para evitar redundancia con Pi.init
-            const auth = await window.Pi.authenticate(scopes);
+            // Pasamos las opciones y el callback de pagos incompletos
+            const auth = await window.Pi.authenticate(scopes, handleIncompletePayment);
             console.log("[Pi SDK] Login OK para usuario:", auth.user.username);
             setUser(auth.user);
             localStorage.setItem("pi_logged_in", "true");
@@ -85,9 +85,13 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                 // Pequeño respiro para asegurar que el bridge del navegador está listo
                 await new Promise(resolve => setTimeout(resolve, 500));
 
+                const isLocalhost = window.location.hostname === "localhost" ||
+                    window.location.hostname === "127.0.0.1" ||
+                    window.location.hostname.startsWith("192.168.");
+
                 await window.Pi.init({
                     version: "2.0",
-                    sandbox: true,
+                    sandbox: isLocalhost,
                     onIncompletePaymentFound: handleIncompletePayment
                 });
 
