@@ -44,45 +44,31 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
     const authenticate = useCallback(async (isAuto = false) => {
         if (!window.Pi) {
-            if (!isAuto) {
-                console.error("[Pi SDK] SDK no encontrado");
-                alert("Pi SDK no detectado. ¿Estás abriendo la aplicación desde el Pi Browser?");
-            }
+            if (!isAuto) alert("Pi SDK no detectado.");
             return;
         }
 
-        console.log("[Pi SDK] Iniciando autenticación...");
-        try {
-            // Usamos scopes mínimos (username, payments) para evitar bloqueos por permisos no aprobados (como wallet_address)
-            const scopes = ["username", "payments"];
-            console.log("[Pi SDK] Solicitando scopes:", scopes);
+        console.log("[Pi SDK] Iniciando autenticación (Estilo Clásico)...");
+        const scopes = ["username", "payments"];
 
-            // Creamos una promesa con timeout para detectar si se cuelga
-            const authPromise = window.Pi.authenticate(scopes);
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("Timeout: La autenticación tardó demasiado (>20s).")), 20000)
-            );
-
-            // Race: El que termine primero gana
-            const auth = await Promise.race([authPromise, timeoutPromise]) as any;
-
-            console.log("[Pi SDK] Autenticación exitosa:", auth.user.username);
-            setUser(auth.user);
-            localStorage.setItem("pi_logged_in", "true");
-        } catch (error: any) {
-            console.error("[Pi SDK] Error en authenticate:", error);
-
-            if (!isAuto) {
-                if (error.message?.includes("cancelled")) {
-                    console.log("[Pi SDK] El usuario canceló el login.");
-                } else if (error.message?.includes("Timeout")) {
-                    alert("Error: El login tardó demasiado. Prueba recargar la página.");
-                } else {
-                    alert("Error al conectar con Pi: " + (error.message || "Error desconocido"));
+        // Usamos .then/.catch clásico para máxima compatibilidad
+        window.Pi.authenticate(scopes, handleIncompletePayment)
+            .then((auth: any) => {
+                console.log("[Pi SDK] Autenticación exitosa:", auth.user.username);
+                setUser(auth.user);
+                localStorage.setItem("pi_logged_in", "true");
+            })
+            .catch((error: any) => {
+                console.error("[Pi SDK] Error en authenticate:", error);
+                if (!isAuto) {
+                    if (error.message?.includes("cancelled")) {
+                        console.log("[Pi SDK] Cancelado por usuario");
+                    } else {
+                        alert("Error Pi: " + (error.message || JSON.stringify(error)));
+                    }
                 }
-            }
-            localStorage.removeItem("pi_logged_in");
-        }
+                localStorage.removeItem("pi_logged_in");
+            });
     }, [handleIncompletePayment]);
 
     useEffect(() => {
@@ -103,11 +89,14 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             }
 
             try {
-                console.log("[Pi SDK] Inicializando SDK...");
+                console.log("[Pi SDK] Inicializando SDK (Modo Minimal)...");
+                console.log("[Pi SDK] URL Actual:", window.location.href);
+
+                // INICIO MINIMALISTA: Sin callbacks de pagos para aislar el login
                 await window.Pi.init({
                     version: "2.0",
                     sandbox: true,
-                    onIncompletePaymentFound: handleIncompletePayment
+                    // onIncompletePaymentFound: handleIncompletePayment <--- COMENTADO POR SEGURIDAD
                 });
 
                 console.log("[Pi SDK] SDK inicializado correctamente");
