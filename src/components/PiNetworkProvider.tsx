@@ -28,6 +28,20 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     const [loading, setLoading] = useState(true);
     const initialized = useRef(false);
 
+    const handleIncompletePayment = useCallback(async (payment: any) => {
+        console.log("[Pi SDK] ⚠️ Pago incompleto encontrado:", payment);
+        try {
+            await fetch('/api/pi/incomplete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ payment }),
+            });
+            console.log("[Pi SDK] Pago incompleto procesado enviando al servidor.");
+        } catch (error) {
+            console.error("[Pi SDK] Error procesando pago incompleto:", error);
+        }
+    }, []);
+
     const authenticate = useCallback(async (isAuto = false) => {
         if (!window.Pi) {
             if (!isAuto) {
@@ -39,10 +53,8 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
         console.log("[Pi SDK] Iniciando autenticación...");
         try {
-            // Usamos scopes mínimos primero para asegurar compatibilidad
-            const auth = await window.Pi.authenticate(["username", "payments", "wallet_address"], (p: any) => {
-                console.log("[Pi SDK] 🔄 Callback de pago incompleto (auth):", p);
-            });
+            // Pasamos handleIncompletePayment como callback
+            const auth = await window.Pi.authenticate(["username", "payments", "wallet_address"], handleIncompletePayment);
 
             console.log("[Pi SDK] Autenticación exitosa:", auth.user.username);
             setUser(auth.user);
@@ -59,7 +71,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             }
             localStorage.removeItem("pi_logged_in");
         }
-    }, []);
+    }, [handleIncompletePayment]);
 
     useEffect(() => {
         let isActive = true;
@@ -79,9 +91,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                 await window.Pi.init({
                     version: "2.0",
                     sandbox: true,
-                    onIncompletePaymentFound: (payment: any) => {
-                        console.log("[Pi SDK] ⚠️ Pago incompleto encontrado:", payment);
-                    }
+                    onIncompletePaymentFound: handleIncompletePayment
                 });
 
                 console.log("[Pi SDK] SDK inicializado correctamente");
@@ -105,7 +115,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             isActive = false;
             if (pollInterval) clearTimeout(pollInterval);
         };
-    }, [authenticate]);
+    }, [authenticate, handleIncompletePayment]);
 
     const createPayment = async (amount: number, memo: string, metadata: any, onSuccess?: () => void) => {
         if (!window.Pi || !user) {
