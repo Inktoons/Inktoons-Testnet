@@ -33,6 +33,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${poppins.variable} font-sans antialiased`}>
         <Providers>
           {children}
+          <MobileDebugConsole />
         </Providers>
       </body>
     </html>

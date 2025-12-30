@@ -45,11 +45,12 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     const authenticate = useCallback(async (isAuto = false) => {
         if (!window.Pi) return;
 
+        const scopes = ["username", "payments"];
+        console.log("[Pi SDK] Llamando a Pi.authenticate con scopes:", scopes);
         try {
-            const scopes = ["username", "payments"];
-            const auth = await window.Pi.authenticate(scopes, handleIncompletePayment);
-
-            console.log("[Pi SDK] Autenticación exitosa:", auth.user.username);
+            // Llamada simple sin el callback manual para evitar redundancia con Pi.init
+            const auth = await window.Pi.authenticate(scopes);
+            console.log("[Pi SDK] Login OK para usuario:", auth.user.username);
             setUser(auth.user);
             localStorage.setItem("pi_logged_in", "true");
         } catch (error: any) {
