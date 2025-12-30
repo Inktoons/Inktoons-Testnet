@@ -142,6 +142,7 @@ export default function TopNavbar() {
                             if (loading) return;
                             authenticate().catch(e => {
                                 console.error("Login component error:", e);
+                                alert("Error al intentar conectar: " + (e.message || JSON.stringify(e)));
                             });
                         }}
                         disabled={loading}
