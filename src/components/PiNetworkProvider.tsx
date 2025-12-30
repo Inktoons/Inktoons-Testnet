@@ -79,13 +79,18 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             if (initialized.current) return;
 
             try {
-                console.log("[Pi SDK] Inicializando...");
+                console.log("[Pi SDK] Preparando inicialización...");
+
+                // Pequeño respiro para asegurar que el bridge del navegador está listo
+                await new Promise(resolve => setTimeout(resolve, 500));
+
                 await window.Pi.init({
                     version: "2.0",
                     sandbox: true,
                     onIncompletePaymentFound: handleIncompletePayment
                 });
 
+                console.log("[Pi SDK] Listo.");
                 initialized.current = true;
 
                 if (localStorage.getItem("pi_logged_in") === "true") {
