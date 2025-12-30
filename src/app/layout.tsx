@@ -25,10 +25,6 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        <Script
-          src="https://sdk.minepi.com/pi-sdk.js"
-          strategy="afterInteractive"
-        />
       </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans antialiased`}>
         <Providers>

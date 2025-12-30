@@ -72,55 +72,43 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
     }, [handleIncompletePayment]);
 
     useEffect(() => {
-        let isActive = true;
-        let pollInterval: NodeJS.Timeout;
+        // Carga dinámica del SDK para asegurar frescura
+        const loadPiScript = () => {
+            if (window.Pi) return initPi();
+
+            const script = document.createElement('script');
+            script.src = "https://sdk.minepi.com/pi-sdk.js";
+            script.async = true;
+            script.onload = () => {
+                console.log("[Pi SDK] Script cargado dinámicamente.");
+                initPi();
+            };
+            script.onerror = (e) => console.error("[Pi SDK] Error cargando script:", e);
+            document.head.appendChild(script);
+        };
 
         const initPi = async () => {
-            if (!window.Pi) {
-                console.log("[Pi SDK] Esperando al SDK...");
-                pollInterval = setTimeout(initPi, 500);
-                return;
-            }
-
-            if (initialized.current) {
-                // Si ya está inicializado, solo actualizamos loading
-                if (isActive) setLoading(false);
-                return;
-            }
+            if (!window.Pi) return;
 
             try {
-                console.log("[Pi SDK] Inicializando SDK (Modo Minimal)...");
-                console.log("[Pi SDK] URL Actual:", window.location.href);
-
-                // INICIO MINIMALISTA: Sin callbacks de pagos para aislar el login
-                await window.Pi.init({
-                    version: "2.0",
-                    sandbox: true,
-                    // onIncompletePaymentFound: handleIncompletePayment <--- COMENTADO POR SEGURIDAD
-                });
-
-                console.log("[Pi SDK] SDK inicializado correctamente");
+                console.log("[Pi SDK] Inicializando SDK (Carga Dinámica)...");
+                await window.Pi.init({ version: "2.0", sandbox: true });
+                console.log("[Pi SDK] Init OK.");
                 initialized.current = true;
 
+                // Intentar recuperar sesión
                 if (localStorage.getItem("pi_logged_in") === "true") {
-                    console.log("[Pi SDK] Re-autenticando sesión previa...");
                     authenticate(true);
                 }
-
-                if (isActive) setLoading(false);
-            } catch (error) {
-                console.error("[Pi SDK] Error crítico en init:", error);
-                if (isActive) setLoading(false);
+                setLoading(false);
+            } catch (err) {
+                console.error("[Pi SDK] Fallo init:", err);
+                setLoading(false);
             }
         };
 
-        initPi();
-
-        return () => {
-            isActive = false;
-            if (pollInterval) clearTimeout(pollInterval);
-        };
-    }, [authenticate, handleIncompletePayment]);
+        loadPiScript();
+    }, [authenticate]);
 
     const createPayment = async (amount: number, memo: string, metadata: any, onSuccess?: () => void) => {
         if (!window.Pi || !user) {
