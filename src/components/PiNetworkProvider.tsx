@@ -58,7 +58,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             console.log("[Pi SDK] Solicitando scopes:", scopes);
 
             // Creamos una promesa con timeout para detectar si se cuelga
-            const authPromise = window.Pi.authenticate(scopes, handleIncompletePayment);
+            const authPromise = window.Pi.authenticate(scopes);
             const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error("Timeout: La autenticación tardó demasiado (>20s).")), 20000)
             );
