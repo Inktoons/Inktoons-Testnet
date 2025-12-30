@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ["susann-organographical-seema.ngrok-free.dev", "*.ngrok-free.dev", "*.ngrok-free.app"],
   devIndicators: false,
+  reactStrictMode: false,
 };
 
 export default nextConfig;
