@@ -53,8 +53,18 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
         console.log("[Pi SDK] Iniciando autenticación...");
         try {
-            // Pasamos handleIncompletePayment como callback
-            const auth = await window.Pi.authenticate(["username", "payments", "wallet_address"], handleIncompletePayment);
+            // Usamos scopes mínimos (username, payments) para evitar bloqueos por permisos no aprobados (como wallet_address)
+            const scopes = ["username", "payments"];
+            console.log("[Pi SDK] Solicitando scopes:", scopes);
+
+            // Creamos una promesa con timeout para detectar si se cuelga
+            const authPromise = window.Pi.authenticate(scopes, handleIncompletePayment);
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("Timeout: La autenticación tardó demasiado (>20s).")), 20000)
+            );
+
+            // Race: El que termine primero gana
+            const auth = await Promise.race([authPromise, timeoutPromise]) as any;
 
             console.log("[Pi SDK] Autenticación exitosa:", auth.user.username);
             setUser(auth.user);
@@ -65,6 +75,8 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             if (!isAuto) {
                 if (error.message?.includes("cancelled")) {
                     console.log("[Pi SDK] El usuario canceló el login.");
+                } else if (error.message?.includes("Timeout")) {
+                    alert("Error: El login tardó demasiado. Prueba recargar la página.");
                 } else {
                     alert("Error al conectar con Pi: " + (error.message || "Error desconocido"));
                 }
