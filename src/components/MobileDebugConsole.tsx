@@ -55,6 +55,10 @@ export default function MobileDebugConsole() {
             <div className="flex justify-between items-center bg-gray-900 p-1 px-2 border-b border-gray-700">
                 <span className="font-bold text-white">Console Log ({logs.length})</span>
                 <div className="flex gap-2">
+                    <button onClick={() => {
+                        localStorage.clear();
+                        window.location.reload();
+                    }} className="bg-orange-600 text-white px-2 rounded hover:bg-orange-500">Reset App</button>
                     <button onClick={() => setLogs([])} className="bg-gray-700 text-white px-2 rounded hover:bg-gray-600">Clear</button>
                     <button onClick={() => setIsVisible(false)} className="bg-red-600 text-white px-2 rounded hover:bg-red-500">Hide</button>
                 </div>

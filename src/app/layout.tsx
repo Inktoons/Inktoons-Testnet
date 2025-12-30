@@ -25,18 +25,10 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head>
-        {/* Carga síncrona del SDK como en la demo oficial */}
-        <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            try {
-              Pi.init({ version: "2.0", sandbox: true });
-              console.log("[Pi SDK HTML] Init called successfully");
-            } catch (e) {
-              console.error("[Pi SDK HTML] Init failed:", e);
-            }
-          `
-        }} />
+        <Script
+          src="https://sdk.minepi.com/pi-sdk.js"
+          strategy="afterInteractive"
+        />
       </head>
       <body className={`${inter.variable} ${poppins.variable} font-sans antialiased`}>
         <Providers>
