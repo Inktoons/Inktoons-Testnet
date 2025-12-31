@@ -5,11 +5,7 @@
             "headers": [
                 {
                     "key": "Content-Security-Policy",
-                    "value": "frame-ancestors 'self' https://*.minepi.com https://minepi.com https://*.pinet.com https://pinet.com https://*.pi;"
-                },
-                {
-                    "key": "Permissions-Policy",
-                    "value": "publickey-credentials-get=*, payment=*, accelerometer=(), camera=(), gyroscope=(), microphone=()"
+                    "value": "frame-ancestors * self https://*.minepi.com https://*.pi;"
                 },
                 {
                     "key": "X-Frame-Options",

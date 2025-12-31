@@ -12,7 +12,7 @@ interface PiContextType {
     user: PiUser | null;
     loading: boolean;
     authenticate: () => Promise<void>;
-    createPayment: (amount: number, memo: string, metadata: any, onSuccess?: () => void) => Promise<void>;
+    createPayment: (amount: number, memo: string, metadata: any, onSuccess?: () => void) => Promise<any>;
 }
 
 const PiContext = createContext<PiContextType | undefined>(undefined);
@@ -48,7 +48,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
         const scopes = ["username", "payments", "wallet_address"];
         console.log("[Pi SDK] Llamando a Pi.authenticate con scopes:", scopes);
         try {
-            // Pasamos las opciones y el callback de pagos incompletos
+            // Sincronizamos con el patrón de Demo.pi pasando handleIncompletePayment
             const auth = await window.Pi.authenticate(scopes, handleIncompletePayment);
             console.log("[Pi SDK] Login OK para usuario:", auth.user.username);
             setUser(auth.user);
@@ -80,22 +80,21 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             if (initialized.current) return;
 
             try {
-                console.log("[Pi SDK] Preparando inicialización...");
+                // Obtenemos el modo sandbox de la variable de entorno o detectamos si estamos en un dominio de vercel preview/custom
+                // Para habilitar HUELLA (biometría), se recomienda sandbox: false siempre que se use el Pi Browser real.
+                const isSandbox = process.env.NEXT_PUBLIC_PI_SANDBOX === "true";
+                console.log(`[Pi SDK] Iniciando Pi SDK (sandbox: ${isSandbox})...`);
 
-                // Pequeño respiro para asegurar que el bridge del navegador está listo
+                // Pequeño retardo para asegurar que el bridge del navegador está listo
                 await new Promise(resolve => setTimeout(resolve, 500));
-
-                const isLocalhost = window.location.hostname === "localhost" ||
-                    window.location.hostname === "127.0.0.1" ||
-                    window.location.hostname.startsWith("192.168.");
 
                 await window.Pi.init({
                     version: "2.0",
-                    sandbox: isLocalhost,
+                    sandbox: isSandbox, 
                     onIncompletePaymentFound: handleIncompletePayment
                 });
 
-                console.log("[Pi SDK] Listo.");
+                console.log("[Pi SDK] Inicialización completada.");
                 initialized.current = true;
 
                 if (localStorage.getItem("pi_logged_in") === "true") {
@@ -103,8 +102,8 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                 }
 
                 if (isActive) setLoading(false);
-            } catch (error) {
-                console.error("[Pi SDK] Error init:", error);
+            } catch (error: any) {
+                console.error("[Pi SDK] Error durante la inicialización:", error);
                 if (isActive) setLoading(false);
             }
         };
@@ -127,66 +126,51 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
             try {
                 console.log(`[Pi Payment] Iniciando pago de ${amount} Pi. Memo: ${memo}`);
 
-                if (!window.Pi) {
-                    reject(new Error("SDK_NOT_FOUND"));
-                    return;
-                }
-
                 window.Pi.createPayment({
                     amount: Number(amount),
                     memo: memo.slice(0, 100),
                     metadata: metadata
                 }, {
-                    onReadyForServerApproval: (paymentId: string) => {
-                        console.log(`[Pi Payment] Aprobación solicitada para: ${paymentId}`);
-                        fetch(`${window.location.origin}/api/pi/approve`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ paymentId }),
-                        })
-                            .then(async (response) => {
-                                if (!response.ok) {
-                                    const errorData = await response.json();
-                                    throw new Error(errorData.error || 'Error del servidor en aprobación');
-                                }
-                                console.log("[Pi Payment] Aprobado por el servidor.");
-                            })
-                            .catch((err) => {
-                                console.error("[Pi Payment] Fallo en aprobación:", err.message);
-                                reject(err);
+                    onReadyForServerApproval: async (paymentId: string) => {
+                        console.log(`[Pi Payment] Aprobación solicitada: ${paymentId}`);
+                        try {
+                            const response = await fetch(`${window.location.origin}/api/pi/approve`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ paymentId }),
                             });
+                            
+                            if (!response.ok) throw new Error('Error en aprobación del servidor');
+                            console.log("[Pi Payment] Aprobado por servidor");
+                        } catch (err) {
+                            console.error("[Pi Payment] Error en aprobación:", err);
+                            reject(err);
+                        }
                     },
-                    onReadyForServerCompletion: (paymentId: string, txid: string) => {
-                        console.log(`[Pi Payment] Completación solicitada. TXID: ${txid}`);
-                        fetch(`${window.location.origin}/api/pi/complete`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ paymentId, txid }),
-                        })
-                            .then(async (response) => {
-                                if (!response.ok) {
-                                    const errorData = await response.json();
-                                    throw new Error(errorData.error || 'Error del servidor en completación');
-                                }
-                                console.log("[Pi Payment] ¡PAGO COMPLETADO EXITOSAMENTE!");
-                                if (onSuccess) onSuccess();
-                                resolve();
-                            })
-                            .catch((err) => {
-                                console.error("[Pi Payment] Fallo en completación:", err.message);
-                                reject(err);
+                    onReadyForServerCompletion: async (paymentId: string, txid: string) => {
+                        console.log(`[Pi Payment] Completación solicitada TXID: ${txid}`);
+                        try {
+                            const response = await fetch(`${window.location.origin}/api/pi/complete`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ paymentId, txid }),
                             });
+
+                            if (!response.ok) throw new Error('Error en completación del servidor');
+                            console.log("[Pi Payment] Pago Finalizado con éxito");
+                            if (onSuccess) onSuccess();
+                            resolve();
+                        } catch (err) {
+                            console.error("[Pi Payment] Error en completación:", err);
+                            reject(err);
+                        }
                     },
                     onCancel: (paymentId: string) => {
-                        console.log(`[Pi Payment] Pago cancelado por el usuario. ID: ${paymentId}`);
+                        console.log(`[Pi Payment] Pago cancelado por el usuario: ${paymentId}`);
                         reject(new Error("CANCELLED_BY_USER"));
                     },
-                    onError: (error: any) => {
-                        console.error('[Pi Payment] Error crítico en el SDK de Pi:', error);
-                        // Mostrar alerta solo si no es una cancelación manual que el SDK reporte como error
-                        if (!error?.message?.includes("cancelled")) {
-                            alert(`Error en el proceso de pago:\n${error.message || "Error desconocido"}`);
-                        }
+                    onError: (error: any, payment?: any) => {
+                        console.error('[Pi Payment] Error crítico en el SDK:', error, payment);
                         reject(error);
                     }
                 });

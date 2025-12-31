@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { ArrowLeft, Wallet, TrendingUp, Zap, ShieldCheck, RefreshCw, AlertCircle, X, Gift, Info, Star, CheckCircle2, Circle, Trophy, BookOpen, Users, Compass, MessageCircle, Target, Crown, Download, Bell } from "lucide-react";
+import { ArrowLeft, Wallet, TrendingUp, Zap, ShieldCheck, RefreshCw, AlertCircle, X, Gift, Info, Star, CheckCircle2, Circle, Trophy, BookOpen, Users, Compass, MessageCircle, Target, Crown, Download, Bell, Fingerprint } from "lucide-react";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import { useUserData } from "@/context/UserDataContext";
 import { AnimatePresence } from "framer-motion";
@@ -182,9 +182,9 @@ export default function WalletPage() {
             return;
         }
 
+        setLoadingPass(pass.id);
         const piCost = (pass as any).pricePi || Number(calculatePiPrice(pass.priceUsd));
 
-        setLoadingPass(pass.id);
         console.log(`[Wallet] Iniciando compra de pase: ${pass.id}`);
 
         try {
@@ -216,9 +216,9 @@ export default function WalletPage() {
             return;
         }
 
+        setLoadingPack(pack.id);
         const piCost = Number(calculatePiPrice(pack.priceUsd));
 
-        setLoadingPack(pack.id);
         console.log(`[Wallet] Iniciando compra de pack: ${pack.id}`);
 
         try {
@@ -326,6 +326,8 @@ export default function WalletPage() {
                     </div>
                 </div>
 
+
+
                 {/* Early Access Pass - ENABLED */}
                 <h2 className="font-black text-lg mb-4 flex items-center gap-2">
                     <Crown className="text-amber-500 ml-1" size={24} fill="currentColor" />
@@ -341,7 +343,7 @@ export default function WalletPage() {
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => handlePassPurchase(pass)}
-                                disabled={loadingPass === pass.id || !currentPiValue}
+                                disabled={!currentPiValue}
                                 className={`w-full relative ${pass.color} border-2 p-5 rounded-2xl flex flex-col items-start text-left transition-all group hover:shadow-lg disabled:opacity-50`}
                             >
                                 {pass.tag && (
@@ -361,9 +363,16 @@ export default function WalletPage() {
                                         </p>
                                     </div>
                                     <div className="flex flex-col items-end">
-                                        <span className="text-lg font-black text-gray-900">
-                                            {(pass as any).pricePi ? `${(pass as any).pricePi} Pi` : (typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>)}
-                                        </span>
+                                        <div className="flex items-center gap-1">
+                                            {loadingPass === pass.id ? (
+                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-pi-purple" />
+                                            ) : (
+                                                <Fingerprint size={14} className="text-gray-400 group-hover:text-pi-purple transition-colors" />
+                                            )}
+                                            <span className="text-lg font-black text-gray-900">
+                                                {(pass as any).pricePi ? `${(pass as any).pricePi} Pi` : (typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>)}
+                                            </span>
+                                        </div>
                                         {!(pass as any).pricePi && <span className="text-[10px] font-bold text-gray-400">(${pass.priceUsd.toFixed(2)})</span>}
                                     </div>
                                 </div>
@@ -379,22 +388,7 @@ export default function WalletPage() {
                                     ))}
                                 </div>
 
-                                {/* Loading Overlay */}
-                                {loadingPass === pass.id && (
-                                    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-10 p-4 text-center">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pi-purple mb-3"></div>
-                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter mb-2">Procesando con Pi...</p>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setLoadingPass(null);
-                                            }}
-                                            className="text-[9px] bg-gray-100 px-2 py-1 rounded-full font-black text-gray-400 hover:text-red-500 transition-colors"
-                                        >
-                                            REINTENTAR / CANCELAR
-                                        </button>
-                                    </div>
-                                )}
+
                             </motion.button>
                         );
                     })}
@@ -415,7 +409,7 @@ export default function WalletPage() {
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 onClick={() => handlePurchase(pack)}
-                                disabled={loadingPack === pack.id || !currentPiValue}
+                                disabled={!currentPiValue}
                                 className={`w-full relative ${pack.color} border-2 p-5 rounded-2xl flex items-center justify-between text-left transition-all group hover:shadow-lg disabled:opacity-50`}
                             >
                                 {pack.tag && (
@@ -438,28 +432,20 @@ export default function WalletPage() {
                                 </div>
 
                                 <div className="flex flex-col items-end">
-                                    <span className="text-lg font-black text-gray-900">
-                                        {typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>}
-                                    </span>
+                                    <div className="flex items-center gap-1">
+                                        {loadingPack === pack.id ? (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-pi-purple" />
+                                        ) : (
+                                            <Fingerprint size={14} className="text-gray-400 group-hover:text-pi-purple transition-colors" />
+                                        )}
+                                        <span className="text-lg font-black text-gray-900">
+                                            {typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>}
+                                        </span>
+                                    </div>
                                     <span className="text-[10px] font-bold text-gray-400">(${pack.priceUsd.toFixed(2)} USD)</span>
                                 </div>
 
-                                {/* Loading Overlay */}
-                                {loadingPack === pack.id && (
-                                    <div className="absolute inset-0 bg-white/90 backdrop-blur-sm rounded-2xl flex flex-col items-center justify-center z-10 p-4 text-center">
-                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pi-purple mb-3"></div>
-                                        <p className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter mb-2">Procesando con Pi...</p>
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setLoadingPack(null);
-                                            }}
-                                            className="text-[9px] bg-gray-100 px-2 py-1 rounded-full font-black text-gray-400 hover:text-red-500 transition-colors"
-                                        >
-                                            REINTENTAR / CANCELAR
-                                        </button>
-                                    </div>
-                                )}
+
                             </motion.button>
                         );
                     })}
