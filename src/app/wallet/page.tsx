@@ -302,7 +302,7 @@ export default function WalletPage() {
                                     className="flex items-center gap-2"
                                 >
                                     <p className="font-bold text-sm">
-                                        1 Pi ≈ ${currentPiValue.toFixed(2)} USD
+                                        1 Test-pi ≈ ${currentPiValue.toFixed(2)} USD
                                     </p>
                                     <span className="bg-green-100 text-green-700 text-[10px] font-bold px-1.5 py-0.5 rounded border border-green-200">{t('wallet_live')}</span>
                                 </motion.div>
@@ -321,7 +321,7 @@ export default function WalletPage() {
                     <div className="flex items-center justify-between text-xs text-gray-500">
                         <span>1 Ink = $0.02 USD ({language === 'es' ? 'Fijo' : language === 'pt' ? 'Fixo' : language === 'fr' ? 'Fixe' : 'Fixed'})</span>
                         {currentPiValue && (
-                            <span>1 Pi ≈ {(currentPiValue / 0.02).toFixed(1)} Inks</span>
+                            <span>1 Test-pi ≈ {(currentPiValue / 0.02).toFixed(1)} Inks</span>
                         )}
                     </div>
                 </div>
@@ -370,7 +370,7 @@ export default function WalletPage() {
                                                 <Fingerprint size={14} className="text-gray-400 group-hover:text-pi-purple transition-colors" />
                                             )}
                                             <span className="text-lg font-black text-gray-900">
-                                                {(pass as any).pricePi ? `${(pass as any).pricePi} Pi` : (typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>)}
+                                                {(pass as any).pricePi ? `${(pass as any).pricePi} Test-pi` : (typeof piCost === 'number' ? `${piCost} Test-pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>)}
                                             </span>
                                         </div>
                                         {!(pass as any).pricePi && <span className="text-[10px] font-bold text-gray-400">(${pass.priceUsd.toFixed(2)})</span>}
@@ -439,7 +439,7 @@ export default function WalletPage() {
                                             <Fingerprint size={14} className="text-gray-400 group-hover:text-pi-purple transition-colors" />
                                         )}
                                         <span className="text-lg font-black text-gray-900">
-                                            {typeof piCost === 'number' ? `${piCost} Pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>}
+                                            {typeof piCost === 'number' ? `${piCost} Test-pi` : <span className="text-gray-400 text-sm">{t('profile_loading')}</span>}
                                         </span>
                                     </div>
                                     <span className="text-[10px] font-bold text-gray-400">(${pack.priceUsd.toFixed(2)} USD)</span>
