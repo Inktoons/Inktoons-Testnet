@@ -1064,6 +1064,7 @@ export const translations = {
         profile_reset_missions: "Reset Missions",
         profile_clear_account: "Effacer Compte",
         profile_cancel_subscription: "Annuler l'abonnement",
+        mantenimiento: "MAINTENANCE",
 
         // Upload
         upload_title: "Publier Inktoon",
