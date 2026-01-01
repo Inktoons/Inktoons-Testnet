@@ -57,7 +57,7 @@ export default function TopNavbar() {
                             >
                                 <Globe size={22} />
                                 <span className="text-[10px] font-black uppercase hidden md:block">
-                                    {language === 'es' ? '🇪🇸' : language === 'en' ? '🇺🇸' : language === 'pt' ? '🇧🇷' : '🇫🇷'}
+                                    {language === 'es' ? '🇪🇸' : language === 'en' ? '🇺🇸' : language === 'pt' ? '🇧🇷' : language === 'fr' ? '🇫🇷' : '🇰🇷'}
                                 </span>
                             </button>
 
@@ -69,7 +69,8 @@ export default function TopNavbar() {
                                             { id: 'es', flag: '🇪🇸', name: 'Español' },
                                             { id: 'en', flag: '🇺🇸', name: 'English' },
                                             { id: 'pt', flag: '🇧🇷', name: 'Português' },
-                                            { id: 'fr', flag: '🇫🇷', name: 'Français' }
+                                            { id: 'fr', flag: '🇫🇷', name: 'Français' },
+                                            { id: 'ko', flag: '🇰🇷', name: '한국어' }
                                         ].map((lang) => (
                                             <button
                                                 key={lang.id}

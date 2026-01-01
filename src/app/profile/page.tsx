@@ -441,7 +441,8 @@ export default function ProfilePage() {
                                                 { id: 'es', name: 'Español', flag: '🇪🇸' },
                                                 { id: 'en', name: 'English', flag: '🇺🇸' },
                                                 { id: 'pt', name: 'Português', flag: '🇧🇷' },
-                                                { id: 'fr', name: 'Français', flag: '🇫🇷' }
+                                                { id: 'fr', name: 'Français', flag: '🇫🇷' },
+                                                { id: 'ko', name: '한국어', flag: '🇰🇷' }
                                             ].map((lang) => (
                                                 <button
                                                     key={lang.id}
