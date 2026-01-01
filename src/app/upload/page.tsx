@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
     ArrowLeft, Image as ImageIcon, Upload, X, Check, Lock,
     Coins, Calendar, Eye, AlertCircle, Loader2, Trash2, Edit3, Keyboard,
-    ChevronUp, ChevronDown, Plus, Play
+    ChevronUp, ChevronDown, Plus, Play, Globe
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useContent, Chapter, Webtoon } from "@/context/ContentContext";
@@ -101,7 +101,7 @@ function UploadPageContent() {
     const chapterIdFromQuery = searchParams.get("chapterId"); // New for edit mode
 
     const { webtoons, addWebtoon, addChapter, updateChapter, uploadImage } = useContent();
-    const { t } = useLanguage();
+    const { t, language: appLanguage, setLanguage: setAppLanguage } = useLanguage();
     const { user } = usePi();
     const { userData } = useUserData();
 
@@ -110,6 +110,7 @@ function UploadPageContent() {
     const [activeTab, setActiveTab] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
+    const [showLangSelector, setShowLangSelector] = useState(false);
 
     // Prompt States
     const [promptConfig, setPromptConfig] = useState<{ isOpen: boolean; title: string; field: string; value: string }>({
@@ -245,14 +246,19 @@ function UploadPageContent() {
     };
 
     const genres = [
-        "4-Koma", "Acción", "Adulto", "Aventuras", "Apocalíptico", "Ciencia Ficción", "Comedia", "Cotidiano",
-        "Delincuentes", "Demonios", "Deportes", "Drama", "Escolar", "Fantasía", "Gender Bender", "Gore",
-        "Harén", "Hentai", "Histórico", "Horror", "Josei", "Karate", "Maduro", "Mafia", "Magia",
-        "Manwha", "Martial", "Mecha", "Militar", "Música", "Mystery", "Omegaverse", "One Shot",
-        "Parodia", "Policial", "Psicológico", "Realidad Virtual", "Reencarnación", "Romance",
-        "Samurai", "Sci-Fi", "Seinen", "Shojo", "Shonen", "Slice of Life", "Smut", "Sports",
-        "Super Natural", "Super Poderes", "Supervivencia", "Suspense", "Terror", "Thriller",
-        "Tragedia", "Vampiros", "Webcomic", "Webtoon", "Yaoi", "Yuri"
+        "genre_4koma", "genre_action", "genre_adult", "genre_adventure", "genre_apocalyptic",
+        "genre_comedy", "genre_delinquents", "genre_demons", "genre_drama", "genre_ecchi",
+        "genre_erotic", "genre_fantasy", "genre_gender_bender", "genre_gore", "genre_harem",
+        "genre_hentai", "genre_historical", "genre_horror", "genre_isekai", "genre_josei",
+        "genre_karate", "genre_mafia", "genre_magic", "genre_manhwa", "genre_martial_arts",
+        "genre_mature", "genre_mecha", "genre_military", "genre_music", "genre_mystery",
+        "genre_nsfw", "genre_omegaverse", "genre_oneshot", "genre_parody", "genre_police",
+        "genre_psychological", "genre_reincarnation", "genre_romance", "genre_samurai",
+        "genre_school", "genre_scifi", "genre_seinen", "genre_shojo", "genre_shonen",
+        "genre_sliceoflife", "genre_smut", "genre_sports", "genre_super_power",
+        "genre_supernatural", "genre_survival", "genre_suspense", "genre_thriller",
+        "genre_tragedy", "genre_vampires", "genre_virtual_reality", "genre_webcomic",
+        "genre_webtoon", "genre_yaoi", "genre_yuri"
     ];
 
     const handleSubmitWebtoon = async () => {
@@ -403,13 +409,61 @@ function UploadPageContent() {
 
             {/* Header */}
             <header className="sticky top-0 z-[50] bg-white/80 backdrop-blur-lg border-b border-gray-100 p-4">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => router.back()} className="p-2 bg-gray-100 rounded-full">
-                        <ArrowLeft size={22} className="text-gray-700" />
-                    </button>
-                    <h1 className="font-extrabold text-xl bg-gradient-to-r from-pi-purple to-indigo-600 bg-clip-text text-transparent">
-                        {isEditMode ? t('upload_edit_chapter') : (webtoonIdFromQuery ? t('upload_new_chapter') : t('upload_title'))}
-                    </h1>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => router.back()} className="p-2 bg-gray-100 rounded-full">
+                            <ArrowLeft size={22} className="text-gray-700" />
+                        </button>
+                        <h1 className="font-extrabold text-xl bg-gradient-to-r from-pi-purple to-indigo-600 bg-clip-text text-transparent">
+                            {isEditMode ? t('upload_edit_chapter') : (webtoonIdFromQuery ? t('upload_new_chapter') : t('upload_title'))}
+                        </h1>
+                    </div>
+
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowLangSelector(!showLangSelector)}
+                            className={`p-2 rounded-full transition-all active:scale-95 flex items-center gap-1 ${showLangSelector ? 'bg-pi-purple/10 text-pi-purple' : 'text-gray-500 hover:text-black hover:bg-gray-100'}`}
+                        >
+                            <Globe size={20} />
+                            <span className="text-[10px] font-black uppercase">
+                                {appLanguage === 'es' ? '🇪🇸' : appLanguage === 'en' ? '🇺🇸' : appLanguage === 'pt' ? '🇧🇷' : appLanguage === 'fr' ? '🇫🇷' : '🇰🇷'}
+                            </span>
+                        </button>
+
+                        <AnimatePresence>
+                            {showLangSelector && (
+                                <>
+                                    <div className="fixed inset-0 z-[-1]" onClick={() => setShowLangSelector(false)} />
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                        className="absolute top-full mt-2 right-0 bg-white rounded-2xl shadow-2xl border border-gray-100 p-2 min-w-[150px] z-[100]"
+                                    >
+                                        {[
+                                            { id: 'es', name: 'Español' },
+                                            { id: 'en', name: 'English' },
+                                            { id: 'pt', name: 'Português' },
+                                            { id: 'fr', name: 'Français' },
+                                            { id: 'ko', name: '한국어' }
+                                        ].map((lang) => (
+                                            <button
+                                                key={lang.id}
+                                                onClick={() => {
+                                                    setAppLanguage(lang.id as any);
+                                                    setShowLangSelector(false);
+                                                }}
+                                                className={`w-full flex items-center justify-between px-3 py-3 rounded-xl transition-all font-bold text-xs active:scale-[0.98] ${appLanguage === lang.id ? 'bg-pi-purple text-white shadow-md' : 'hover:bg-gray-50 text-gray-700'}`}
+                                            >
+                                                {lang.name}
+                                                {appLanguage === lang.id && <Check size={14} />}
+                                            </button>
+                                        ))}
+                                    </motion.div>
+                                </>
+                            )}
+                        </AnimatePresence>
+                    </div>
                 </div>
             </header>
 
@@ -527,17 +581,18 @@ function UploadPageContent() {
 
                             <div className="space-y-2">
                                 <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_language_label')}</label>
-                                <div className="grid grid-cols-4 gap-2">
+                                <div className="flex flex-wrap gap-2">
                                     {[
                                         { id: "Español", label: t('upload_esp') || "ESP" },
                                         { id: "Inglés", label: t('upload_eng') || "ING" },
                                         { id: "Portugués", label: t('upload_por') || "POR" },
-                                        { id: "Francés", label: t('upload_fra') || "FRA" }
+                                        { id: "Francés", label: t('upload_fra') || "FRA" },
+                                        { id: "Coreano", label: t('upload_kor') || "KOR" }
                                     ].map(lang => (
                                         <button
                                             key={lang.id}
                                             onClick={() => setLanguage(lang.id)}
-                                            className={`py-2 rounded-xl text-[10px] font-black border-2 transition-all ${language === lang.id ? "bg-pi-purple text-white border-pi-purple" : "bg-white text-gray-400 border-gray-100"}`}
+                                            className={`flex-1 min-w-[70px] py-2 rounded-xl text-[10px] font-black border-2 transition-all ${language === lang.id ? "bg-pi-purple text-white border-pi-purple" : "bg-white text-gray-400 border-gray-100"}`}
                                         >
                                             {lang.label}
                                         </button>
@@ -564,7 +619,7 @@ function UploadPageContent() {
                                                 : "bg-white text-gray-500 border-gray-100 hover:border-gray-300"
                                                 }`}
                                         >
-                                            {genre}
+                                            {t(genre as any)}
                                         </button>
                                     ))}
                                 </div>

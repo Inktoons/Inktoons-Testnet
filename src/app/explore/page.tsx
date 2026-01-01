@@ -108,7 +108,7 @@ export default function ExplorePage() {
 
             const matchesGenre = !selectedGenre ||
                 (() => {
-                    let genreKey = 'genre_' + item.genre.toLowerCase()
+                    let genreKey = item.genre.startsWith('genre_') ? item.genre : 'genre_' + item.genre.toLowerCase()
                         .replace('ó', 'o')
                         .replace('í', 'i')
                         .replace('é', 'e')
@@ -400,7 +400,7 @@ export default function ExplorePage() {
                                                         <span className="text-gray-200">|</span>
                                                         <span className="text-pi-purple/70 uppercase tracking-tighter">
                                                             {(() => {
-                                                                let genreKey = 'genre_' + item.genre.toLowerCase()
+                                                                let genreKey = item.genre.startsWith('genre_') ? item.genre : 'genre_' + item.genre.toLowerCase()
                                                                     .replace('ó', 'o')
                                                                     .replace('í', 'i')
                                                                     .replace('é', 'e')

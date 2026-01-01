@@ -160,7 +160,7 @@ export default function MangaDetailPage() {
     // Mock data to match the screenshot richness
     const status = "En progreso";
     const alternativeTitle = "The Pioneer's Legacy, Cronache della Rete";
-    const genres = ["Acción", "Aventura", "Fantasía"];
+    const genres = (news && news.genres && news.genres.length > 0) ? news.genres : [news.category || "genre_action"];
 
     const isFav = isFavorite(news.id);
     const inHist = isInHistory(news.id);
@@ -402,7 +402,7 @@ export default function MangaDetailPage() {
                             {genres.map(g => {
                                 // Simple mapping for translation
                                 // We try to normalize string to key format: genre_accion -> genre_action checking known keys
-                                let genreKey = 'genre_' + g.toLowerCase()
+                                let genreKey = g.startsWith('genre_') ? g : 'genre_' + g.toLowerCase()
                                     .replace('ó', 'o')
                                     .replace('í', 'i')
                                     .replace('é', 'e')

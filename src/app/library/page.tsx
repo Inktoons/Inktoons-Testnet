@@ -121,7 +121,12 @@ export default function LibraryPage() {
                                         <div>
                                             <div className="flex justify-between items-start mb-1">
                                                 <span className="text-[10px] font-black text-pi-purple uppercase tracking-widest">
-                                                    {item.category}
+                                                    {(() => {
+                                                        const cat = item.category || "";
+                                                        const genreKey = cat.startsWith('genre_') ? cat : 'genre_action';
+                                                        const translated = t(genreKey as any);
+                                                        return (translated && translated !== genreKey) ? translated : cat;
+                                                    })()}
                                                 </span>
                                             </div>
                                             <h3 className="font-bold text-sm leading-tight line-clamp-2 mb-2 text-slate-900 group-hover:text-pi-purple transition-colors">

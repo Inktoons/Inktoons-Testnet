@@ -155,7 +155,7 @@ export default function Home() {
                   <h4 className="text-[12px] font-bold text-slate-800 line-clamp-1 group-hover:text-pi-purple transition-colors">
                     {item.title}
                   </h4>
-                  <p className="text-[10px] font-medium text-gray-400 mt-0.5">{item.category}</p>
+                  <p className="text-[10px] font-medium text-gray-400 mt-0.5">{t(item.category as any)}</p>
                 </div>
               </motion.div>
             ))}
@@ -211,7 +211,7 @@ export default function Home() {
                     {item.title}
                   </h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">{item.category}</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">{t(item.category as any)}</span>
                     <div className="flex items-center gap-1 text-[10px] font-black text-slate-500">
                       <TrendingUp size={12} className="text-pi-purple" />
                       {(item.views || 0).toLocaleString()} {t('home_visitas')}
