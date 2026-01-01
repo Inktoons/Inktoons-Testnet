@@ -90,7 +90,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
 
                 await window.Pi.init({
                     version: "2.0",
-                    sandbox: isSandbox, 
+                    sandbox: isSandbox,
                     onIncompletePaymentFound: handleIncompletePayment
                 });
 
@@ -139,7 +139,7 @@ export const PiProvider: React.FC<{ children: React.ReactNode }> = ({ children }
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ paymentId }),
                             });
-                            
+
                             if (!response.ok) throw new Error('Error en aprobación del servidor');
                             console.log("[Pi Payment] Aprobado por servidor");
                         } catch (err) {
