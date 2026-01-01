@@ -57,30 +57,6 @@ export default function ProfilePage() {
     const username = user?.username || "Pionero";
     const initial = username.charAt(0).toUpperCase();
 
-    const menuItems = [
-        {
-            id: 'favorites',
-            icon: <Heart className="text-red-500" size={22} />,
-            label: t('profile_favorites'),
-            count: userData.favorites.length,
-            color: "bg-red-50"
-        },
-        {
-            id: 'following',
-            icon: <Users className="text-blue-500" size={22} />,
-            label: t('profile_following'),
-            count: userData.following.length,
-            color: "bg-blue-50"
-        },
-        {
-            id: 'history',
-            icon: <History className="text-green-500" size={22} />,
-            label: t('profile_history'),
-            count: userData.history.length,
-            color: "bg-green-50"
-        },
-    ];
-
     const getFilteredWebtoons = () => {
         switch (viewMode) {
             case 'favorites':
@@ -113,6 +89,30 @@ export default function ProfilePage() {
             return acc;
         }, []);
     }, [webtoons, userData.history, userData.readChapters, userData.lastRead]);
+
+    const menuItems = [
+        {
+            id: 'favorites',
+            icon: <Heart className="text-red-500" size={22} />,
+            label: t('profile_favorites'),
+            count: userData.favorites.length,
+            color: "bg-red-50"
+        },
+        {
+            id: 'following',
+            icon: <Users className="text-blue-500" size={22} />,
+            label: t('profile_following'),
+            count: userData.following.length,
+            color: "bg-blue-50"
+        },
+        {
+            id: 'history',
+            icon: <History className="text-green-500" size={22} />,
+            label: t('profile_history'),
+            count: historyItems.length,
+            color: "bg-green-50"
+        },
+    ];
 
     const getViewTitle = () => {
         switch (viewMode) {
@@ -385,7 +385,7 @@ export default function ProfilePage() {
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center pr-2">
-                                                        <button onClick={(e) => { e.stopPropagation(); deleteWebtoon(ink.id); }} className="p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                                                        <button onClick={(e) => { e.stopPropagation(); deleteWebtoon(ink.id); }} className="p-2 text-slate-400 hover:text-red-500 transition-all">
                                                             <Trash2 size={18} />
                                                         </button>
                                                     </div>
@@ -462,7 +462,14 @@ export default function ProfilePage() {
                                     </div>
 
                                     {/* WALLET */}
-                                    <div className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-pi-purple/30 transition-all flex flex-col h-full">
+                                    <div className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-pi-purple/30 transition-all flex flex-col h-full relative overflow-hidden">
+                                        {/* MANTENIMIENTO OVERLAY */}
+                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                                            <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border border-amber-200 shadow-sm animate-pulse">
+                                                {t('mantenimiento') || 'MANTENIMIENTO'}
+                                            </div>
+                                        </div>
+
                                         <div className="flex items-center gap-4 mb-4">
                                             <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
                                                 <Wallet className="text-amber-500" size={24} />
@@ -472,14 +479,14 @@ export default function ProfilePage() {
                                                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t('profile_wallet_desc')}</span>
                                             </div>
                                         </div>
-                                        <div className="mt-auto space-y-2">
+                                        <div className="mt-auto space-y-2 opacity-50 pointer-events-none">
                                             <div className="relative">
                                                 <input
                                                     type="text"
+                                                    disabled
                                                     placeholder={t('profile_wallet_placeholder')}
                                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 focus:outline-none focus:border-pi-purple/50 focus:ring-1 focus:ring-pi-purple/50 font-mono"
                                                     defaultValue={userData.walletAddress || ""}
-                                                    onBlur={(e) => updateWalletAddress(e.target.value)}
                                                 />
                                                 <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"><Save size={14} /></div>
                                             </div>
@@ -546,6 +553,6 @@ export default function ProfilePage() {
                     <span className="text-[10px] font-bold">{t('nav_profile')}</span>
                 </button>
             </div>
-        </div>
+        </div >
     );
 }

@@ -50,6 +50,7 @@ export const translations = {
         profile_reset_missions: "Reset Misiones",
         profile_clear_account: "Limpiar Cuenta",
         profile_cancel_subscription: "Cancelar Suscripción",
+        mantenimiento: "MANTENIMIENTO",
 
         // Upload
         upload_title: "Subir Inktoon",
@@ -387,6 +388,7 @@ export const translations = {
         profile_reset_missions: "Reset Missions",
         profile_clear_account: "Clear Account",
         profile_cancel_subscription: "Cancel Subscription",
+        mantenimiento: "MAINTENANCE",
 
         // Upload
         upload_title: "Upload Inktoon",
@@ -724,6 +726,7 @@ export const translations = {
         profile_reset_missions: "Reset Missões",
         profile_clear_account: "Limpar Conta",
         profile_cancel_subscription: "Cancelar Assinatura",
+        mantenimiento: "MANUTENÇÃO",
 
         // Upload
         upload_title: "Enviar Inktoon",
@@ -1055,7 +1058,7 @@ export const translations = {
         profile_loading: "Chargement...",
         profile_en_curso: "En cours",
         profile_founder_desc: "Membre Fondateur Inktoons",
-        profile_pioneer_desc: "Pi Pioneer Creator",
+        profile_pioneer_desc: "CRÉATEUR INKTOONS",
         profile_caps: "Chs",
         profile_dev_panel: "Panneau Développeur",
         profile_reset_missions: "Reset Missions",
