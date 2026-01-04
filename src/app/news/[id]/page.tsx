@@ -102,27 +102,7 @@ export default function MangaDetailPage() {
     const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
 
     // Comments State
-    const [comments, setComments] = useState<Comment[]>([
-        {
-            id: "c1",
-            username: "W893",
-            avatar: "W",
-            content: "🔥🥵",
-            timestamp: "3 Horas atras",
-            likes: 0,
-            replies: 0
-        },
-        {
-            id: "c2",
-            username: "Pionero",
-            avatar: "P",
-            content: "¡Increíble historia! Me encanta el desarrollo de los personajes. 👍🥵👍",
-            image: "https://images.unsplash.com/photo-1620336655055-1f69376980c2?auto=format&fit=crop&w=200&q=80",
-            timestamp: "Nov 22, 2025",
-            likes: 42,
-            replies: 2
-        }
-    ]);
+    const [comments, setComments] = useState<Comment[]>([]);
     const [showCommentInput, setShowCommentInput] = useState(false);
     const [newCommentText, setNewCommentText] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
