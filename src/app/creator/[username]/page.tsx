@@ -137,33 +137,35 @@ export default function CreatorProfilePage() {
 
             <div className="max-w-4xl mx-auto pt-20 pb-32">
                 {/* Header Banner Area */}
-                <div className="relative h-48 rounded-b-[60px] shadow-2xl overflow-hidden mb-16 bg-slate-200">
-                    {creatorBanner ? (
-                        <div className="absolute inset-0">
-                            <img src={creatorBanner} className="w-full h-full object-cover" alt="Banner" />
-                            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
-                        </div>
-                    ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-pi-purple to-pi-purple-dark">
-                            <div className="absolute inset-0 opacity-20">
-                                <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-white blur-3xl animate-pulse" />
-                                <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-pi-gold blur-3xl animate-pulse" />
+                <div className="relative mb-20">
+                    <div className="relative h-64 rounded-b-[80px] shadow-2xl overflow-hidden bg-slate-200">
+                        {creatorBanner ? (
+                            <div className="absolute inset-0">
+                                <img src={creatorBanner} className="w-full h-full object-cover" alt="Banner" />
+                                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
                             </div>
-                        </div>
-                    )}
+                        ) : (
+                            <div className="absolute inset-0 bg-gradient-to-br from-pi-purple to-pi-purple-dark">
+                                <div className="absolute inset-0 opacity-20">
+                                    <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-white blur-3xl animate-pulse" />
+                                    <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-pi-gold blur-3xl animate-pulse" />
+                                </div>
+                            </div>
+                        )}
 
-                    <button
-                        onClick={() => router.back()}
-                        className="absolute top-6 left-6 p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white hover:bg-white/40 transition-all z-10"
-                    >
-                        <ArrowLeft size={24} />
-                    </button>
+                        <button
+                            onClick={() => router.back()}
+                            className="absolute top-6 left-6 p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white hover:bg-white/40 transition-all z-10"
+                        >
+                            <ArrowLeft size={24} />
+                        </button>
+                    </div>
 
-                    {/* Floating Avatar - CIRCULAR */}
-                    <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex flex-col items-center">
+                    {/* Floating Avatar - CIRCULAR and outside overflow hidden */}
+                    <div className="absolute -bottom-14 left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
                         <div className="relative group">
                             <div className="w-32 h-32 rounded-full bg-white p-1.5 shadow-2xl relative">
-                                <div className="w-full h-full rounded-full bg-gradient-to-br from-pi-purple to-pi-purple-dark flex items-center justify-center text-white text-5xl font-black overflow-hidden shadow-inner">
+                                <div className="w-full h-full rounded-full bg-gradient-to-br from-pi-purple to-pi-purple-dark flex items-center justify-center text-white text-5xl font-black overflow-hidden shadow-inner border-4 border-white">
                                     {isMyProfile && myUserData.profileImage ? (
                                         <img src={myUserData.profileImage} className="w-full h-full object-cover" alt="Avatar" />
                                     ) : (
