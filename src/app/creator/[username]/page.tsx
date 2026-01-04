@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     ArrowLeft, Heart, BookOpen, Star, MessageCircle,
     ChevronRight, Loader2, Coins, Edit3, Send, CheckCircle2,
-    X, Info, ShieldCheck
+    X, Info, ShieldCheck, Wallet, Save
 } from "lucide-react";
 import { useContent } from "@/context/ContentContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -14,7 +14,6 @@ import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
 import { SupabaseService } from "@/lib/supabaseService";
 import TopNavbar from "@/components/TopNavbar";
-import { Wallet, Save } from "lucide-react";
 
 export default function CreatorProfilePage() {
     const params = useParams();
@@ -24,11 +23,10 @@ export default function CreatorProfilePage() {
     const { webtoons } = useContent();
     const { t } = useLanguage();
     const { createPayment, user: currentUser } = usePi();
-    const { userData: myUserData, updateCreatorBio, toggleTips, updateWalletAddress } = useUserData();
+    const { userData: myUserData, updateCreatorBio, updateWalletAddress } = useUserData();
 
     const [creatorData, setCreatorData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [isDonating, setIsDonating] = useState(false);
     const [donationAmount, setDonationAmount] = useState("");
     const [donationSuccess, setDonationSuccess] = useState(false);
     const [isSubmittingDonation, setIsSubmittingDonation] = useState(false);
@@ -36,7 +34,6 @@ export default function CreatorProfilePage() {
     // Edit state
     const [isEditing, setIsEditing] = useState(false);
     const [editedBio, setEditedBio] = useState("");
-    const [editedTipsEnabled, setEditedTipsEnabled] = useState(false);
     const [editedWalletAddress, setEditedWalletAddress] = useState("");
 
     const isMyProfile = currentUser?.username === username;
@@ -52,33 +49,28 @@ export default function CreatorProfilePage() {
             setLoading(true);
             const data = await SupabaseService.getUserByUsername(username);
 
-            // If it's my profile, we can use context data as source of truth
             if (isMyProfile) {
                 setCreatorData({
                     username: username,
                     creatorDescription: myUserData.creatorDescription,
-                    tipsEnabled: true,
                     walletAddress: myUserData.walletAddress,
                     id: currentUser?.uid
                 });
                 setEditedBio(myUserData.creatorDescription || "");
-                setEditedTipsEnabled(myUserData.tipsEnabled || false);
                 setEditedWalletAddress(myUserData.walletAddress || "");
             } else if (data) {
-                setCreatorData({ ...data, tipsEnabled: true });
+                setCreatorData(data);
             } else {
-                // Fallback for user with no data yet but existing username
                 setCreatorData({
                     username: username,
                     creatorDescription: "",
-                    tipsEnabled: true,
                     walletAddress: ""
                 });
             }
             setLoading(false);
         };
         if (username) fetchCreator();
-    }, [username, isMyProfile, myUserData.creatorDescription, myUserData.tipsEnabled]);
+    }, [username, isMyProfile, myUserData.creatorDescription, myUserData.walletAddress, currentUser]);
 
     const creatorWorks = webtoons.filter(w => w.author === username);
     const creatorBanner = creatorWorks.find(w => w.bannerUrl)?.bannerUrl;
@@ -112,7 +104,6 @@ export default function CreatorProfilePage() {
                     setTimeout(() => {
                         setDonationSuccess(false);
                         setDonationAmount("");
-                        setIsDonating(false);
                     }, 5000);
                 }
             );
@@ -136,37 +127,43 @@ export default function CreatorProfilePage() {
             <TopNavbar />
 
             <div className="max-w-4xl mx-auto pt-20 pb-32">
-                {/* Header Banner Area */}
-                <div className="relative mb-20">
-                    <div className="relative h-64 rounded-b-[80px] shadow-2xl overflow-hidden bg-slate-200">
+                {/* Header Section with Integrated Banner Background */}
+                <div className="relative mb-12 overflow-hidden shadow-2xl bg-slate-200">
+                    {/* Background Banner - Full Height of this section */}
+                    <div className="absolute inset-0 z-0">
                         {creatorBanner ? (
-                            <div className="absolute inset-0">
+                            <div className="w-full h-full relative">
                                 <img src={creatorBanner} className="w-full h-full object-cover" alt="Banner" />
-                                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40" />
+                                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/5 to-white/0" />
                             </div>
                         ) : (
-                            <div className="absolute inset-0 bg-gradient-to-br from-pi-purple to-pi-purple-dark">
+                            <div className="w-full h-full bg-gradient-to-br from-pi-purple to-pi-purple-dark">
                                 <div className="absolute inset-0 opacity-20">
                                     <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-white blur-3xl animate-pulse" />
                                     <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-pi-gold blur-3xl animate-pulse" />
                                 </div>
+                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/0" />
                             </div>
                         )}
-
-                        <button
-                            onClick={() => router.back()}
-                            className="absolute top-6 left-6 p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white hover:bg-white/40 transition-all z-10"
-                        >
-                            <ArrowLeft size={24} />
-                        </button>
                     </div>
 
-                    {/* Floating Avatar - CIRCULAR and outside overflow hidden */}
-                    <div className="absolute -bottom-14 left-1/2 -translate-x-1/2 flex flex-col items-center z-20">
-                        <div className="relative group">
+                    {/* Content inside the Banner Area */}
+                    <div className="relative z-10 pt-6 pb-12 px-6 flex flex-col items-center">
+                        {/* Top Controls */}
+                        <div className="w-full flex justify-start mb-8">
+                            <button
+                                onClick={() => router.back()}
+                                className="p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white hover:bg-white/40 transition-all"
+                            >
+                                <ArrowLeft size={24} />
+                            </button>
+                        </div>
+
+                        {/* Avatar */}
+                        <div className="relative group mb-6">
                             <div className="w-32 h-32 rounded-full bg-white p-1.5 shadow-2xl relative">
                                 <div className="w-full h-full rounded-full bg-gradient-to-br from-pi-purple to-pi-purple-dark flex items-center justify-center text-white text-5xl font-black overflow-hidden shadow-inner border-4 border-white">
-                                    {isMyProfile && myUserData.profileImage ? (
+                                    {(isMyProfile && myUserData.profileImage) ? (
                                         <img src={myUserData.profileImage} className="w-full h-full object-cover" alt="Avatar" />
                                     ) : (
                                         username.charAt(0).toUpperCase()
@@ -183,32 +180,35 @@ export default function CreatorProfilePage() {
                                 )}
                             </div>
                         </div>
+
+                        {/* User Info */}
+                        <div className="text-center">
+                            <h1 className="text-3xl font-black text-slate-900 mb-1 drop-shadow-sm">{username}</h1>
+                            <div className="flex items-center justify-center gap-2 mb-8">
+                                <span className="px-4 py-1.5 bg-pi-gold/10 text-pi-gold-dark text-[10px] font-black rounded-full uppercase tracking-widest border border-pi-gold/20 shadow-sm flex items-center gap-1.5 backdrop-blur-sm">
+                                    <ShieldCheck size={12} fill="currentColor" />
+                                    {t('profile_pioneer_desc')}
+                                </span>
+                            </div>
+
+                            {/* Stats */}
+                            <div className="flex items-center justify-center gap-4">
+                                <div className="bg-white/80 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-white/50 min-w-[110px]">
+                                    <div className="text-xl font-black text-slate-900">{creatorWorks.length}</div>
+                                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{t('creator_profile_works')}</div>
+                                </div>
+                                <div className="bg-white/80 backdrop-blur-md px-6 py-3 rounded-2xl shadow-sm border border-white/50 min-w-[110px]">
+                                    <div className="text-xl font-black text-slate-900">
+                                        {(creatorWorks.reduce((acc, w) => acc + (w.rating || 0), 0) / (creatorWorks.length || 1)).toFixed(1)}
+                                    </div>
+                                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">{t('creator_profile_rating')}</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div className="px-6 text-center mt-2 mb-10">
-                    <h1 className="text-3xl font-black text-slate-900 mb-1">{username}</h1>
-                    <div className="flex items-center justify-center gap-2 mb-6">
-                        <span className="px-4 py-1.5 bg-pi-gold/10 text-pi-gold-dark text-[10px] font-black rounded-full uppercase tracking-widest border border-pi-gold/20 shadow-sm flex items-center gap-1.5">
-                            <ShieldCheck size={12} fill="currentColor" />
-                            {t('profile_pioneer_desc')}
-                        </span>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center justify-center gap-4 mb-8">
-                        <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-100 min-w-[100px]">
-                            <div className="text-xl font-black text-slate-900">{creatorWorks.length}</div>
-                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{t('creator_profile_works')}</div>
-                        </div>
-                        <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-gray-100 min-w-[100px]">
-                            <div className="text-xl font-black text-slate-900">
-                                {(creatorWorks.reduce((acc, w) => acc + (w.rating || 0), 0) / (creatorWorks.length || 1)).toFixed(1)}
-                            </div>
-                            <div className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{t('creator_profile_rating')}</div>
-                        </div>
-                    </div>
-
+                <div className="px-6">
                     {/* Content Section */}
                     <div className="space-y-8 text-left max-w-2xl mx-auto">
                         {/* Description Section */}
@@ -223,7 +223,7 @@ export default function CreatorProfilePage() {
                                         <button
                                             onClick={() => {
                                                 setIsEditing(false);
-                                                setEditedBio(creatorData.creatorDescription || "");
+                                                setEditedBio(myUserData.creatorDescription || "");
                                             }}
                                             className="p-1 px-3 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase"
                                         >
@@ -248,198 +248,140 @@ export default function CreatorProfilePage() {
                                 />
                             ) : (
                                 <p className="text-slate-600 text-[15px] leading-relaxed font-medium italic">
-                                    {creatorData.creatorDescription ? `"${creatorData.creatorDescription}"` : t('creator_profile_no_desc')}
+                                    {isMyProfile ? myUserData.creatorDescription || t('creator_profile_no_desc') : creatorData?.creatorDescription || t('creator_profile_no_desc')}
                                 </p>
                             )}
                         </div>
 
-                        {/* Wallet Section (Only in Edit Mode) */}
-                        {isMyProfile && isEditing && (
-                            <div className="bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50">
-                                <div className="flex items-center gap-4 mb-6">
-                                    <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center border border-amber-100 shadow-sm">
-                                        <Wallet className="text-pi-gold" size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-lg font-black text-slate-900 leading-none mb-1">{t('profile_wallet')}</h3>
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('profile_wallet_desc')}</p>
-                                    </div>
-                                </div>
+                        {/* Works Section */}
+                        <div className="space-y-6">
+                            <h3 className="text-[12px] font-black text-pi-purple uppercase tracking-[0.2em] flex items-center gap-2 ml-4">
+                                <div className="w-1.5 h-1.5 rounded-full bg-pi-purple" />
+                                {t('creator_profile_works')}
+                            </h3>
 
-                                <div className="space-y-4">
-                                    <div className="relative">
-                                        <input
-                                            type="text"
-                                            value={editedWalletAddress}
-                                            onChange={(e) => setEditedWalletAddress(e.target.value)}
-                                            placeholder={t('profile_wallet_placeholder')}
-                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-5 pl-6 pr-14 font-bold text-slate-700 outline-none focus:border-pi-purple focus:bg-white transition-all text-sm"
-                                        />
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-pi-purple/40">
-                                            <Save size={20} />
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {creatorWorks.map((work) => (
+                                    <motion.div
+                                        key={work.id}
+                                        whileHover={{ y: -5 }}
+                                        onClick={() => router.push(`/news/${work.id}`)}
+                                        className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex gap-4 cursor-pointer hover:shadow-md transition-all group"
+                                    >
+                                        <div className="w-20 h-28 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-50">
+                                            <img src={work.imageUrl} alt={work.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                         </div>
+                                        <div className="flex-1 flex flex-col justify-center gap-1">
+                                            <p className="text-[10px] font-black text-pi-purple uppercase tracking-widest">{work.category}</p>
+                                            <h4 className="font-bold text-sm text-slate-900 line-clamp-2 leading-tight">{work.title}</h4>
+                                            <div className="flex items-center gap-3 text-[10px] text-gray-400 font-bold mt-1">
+                                                <span className="flex items-center gap-1"><Star size={10} className="text-pi-gold" fill="currentColor" /> {work.rating?.toFixed(1) || "0.0"}</span>
+                                                <span className="flex items-center gap-1"><BookOpen size={10} /> {work.chapters?.length || 0} {t('profile_caps')}</span>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+
+                            {creatorWorks.length === 0 && (
+                                <p className="text-center text-slate-400 font-bold py-10 italic">
+                                    {t('creator_profile_empty_works')}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Tip/Support Section */}
+                        {(creatorData?.walletAddress || (isMyProfile && isEditing)) && (
+                            <div className="space-y-6">
+                                <h3 className="text-[12px] font-black text-pi-purple uppercase tracking-[0.2em] flex items-center gap-2 ml-4">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-pi-purple" />
+                                    {t('creator_tips_title')}
+                                </h3>
+
+                                <div className="bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-pi-purple/5 rounded-bl-full -mr-16 -mt-16" />
+
+                                    {/* Wallet Configuration (Edit Mode) */}
+                                    {isMyProfile && isEditing && (
+                                        <div className="mb-8 p-6 bg-pi-purple/5 rounded-3xl border border-pi-purple/10">
+                                            <label className="text-[10px] font-black text-pi-purple uppercase tracking-[0.1em] block mb-3 ml-1">
+                                                {t('profile_wallet')}
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editedWalletAddress}
+                                                onChange={(e) => setEditedWalletAddress(e.target.value)}
+                                                placeholder={t('profile_wallet_placeholder')}
+                                                className="w-full bg-white border-2 border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-pi-purple transition-all font-mono"
+                                            />
+                                            <p className="text-[10px] text-slate-400 font-bold mt-3 px-1">
+                                                * {t('profile_wallet_autosave')}
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    <div className="text-center mb-8">
+                                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{t('creator_tips_sub')}</p>
                                     </div>
-                                    <p className="text-[10px] text-slate-400 font-bold italic pl-2">
-                                        {t('profile_wallet_autosave')}
-                                    </p>
+
+                                    {donationSuccess ? (
+                                        <div className="text-center py-6 animate-in zoom-in-95">
+                                            <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                                <CheckCircle2 size={32} />
+                                            </div>
+                                            <h4 className="text-xl font-black text-slate-900">{t('creator_donate_success')}</h4>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            <div className="grid grid-cols-4 gap-3">
+                                                {["1", "5", "10", "20"].map((amount) => (
+                                                    <button
+                                                        key={amount}
+                                                        onClick={() => handleDonation(amount)}
+                                                        className="p-3 rounded-2xl border-2 border-slate-100 text-slate-600 font-black text-sm hover:border-pi-purple hover:text-pi-purple hover:bg-pi-purple/5 transition-all active:scale-95"
+                                                    >
+                                                        {amount} Pi
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <div className="flex gap-3">
+                                                <div className="relative flex-1">
+                                                    <input
+                                                        type="number"
+                                                        value={donationAmount}
+                                                        onChange={(e) => setDonationAmount(e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-4 text-xl font-black text-slate-900 outline-none focus:border-pi-purple transition-all"
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-pi-purple">Pi</span>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDonation("")}
+                                                    disabled={isSubmittingDonation || !donationAmount}
+                                                    className="px-8 bg-slate-900 text-white rounded-2xl font-black shadow-lg hover:bg-pi-purple transition-all active:scale-95 disabled:opacity-30"
+                                                >
+                                                    {isSubmittingDonation ? <Loader2 className="animate-spin" /> : <Send size={24} />}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Info Section */}
+                                    <div className="mt-12 bg-slate-900 rounded-[30px] p-8 text-white text-center relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-pi-purple/20 rounded-full blur-2xl -mr-16 -mt-16" />
+                                        <h4 className="text-lg font-black mb-2">{t('creator_tips_info_title')}</h4>
+                                        <p className="text-slate-400 font-medium text-xs leading-relaxed">
+                                            {t('creator_tips_info_desc')}
+                                            <br />
+                                            <span className="text-pi-gold font-black uppercase inline-block mt-2">{t('creator_tips_no_commission')}</span>
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         )}
                     </div>
                 </div>
-
-                {/* Works Section */}
-                <div className="px-6 space-y-8">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight flex items-center gap-3">
-                            📚 {t('creator_profile_works')}
-                            <span className="text-sm font-bold text-gray-300 ml-2">({creatorWorks.length})</span>
-                        </h2>
-                        <div className="h-px flex-1 bg-slate-100 ml-6" />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                        {creatorWorks.map((work) => (
-                            <motion.div
-                                key={work.id}
-                                whileHover={{ y: -5, scale: 1.02 }}
-                                onClick={() => router.push(`/news/${work.id}`)}
-                                className="bg-white p-4 rounded-[40px] border border-slate-100 shadow-xl shadow-slate-200/20 flex gap-5 cursor-pointer group hover:bg-slate-50 transition-all"
-                            >
-                                <div className="w-28 h-36 rounded-[28px] overflow-hidden flex-shrink-0 shadow-lg relative">
-                                    <img src={work.imageUrl} alt={work.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                                    <div className="absolute top-2 left-2 px-2 py-0.5 bg-pi-purple/90 text-white text-[8px] font-black rounded-lg uppercase backdrop-blur-sm">
-                                        {work.status}
-                                    </div>
-                                </div>
-
-                                <div className="flex-1 py-1 flex flex-col justify-between overflow-hidden">
-                                    <div>
-                                        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-                                            {work.genres?.slice(0, 2).map(g => (
-                                                <span key={g} className="text-[9px] font-black text-pi-purple px-2 py-0.5 bg-pi-purple/5 rounded-full uppercase tracking-wider">{t(g as any)}</span>
-                                            ))}
-                                        </div>
-                                        <h3 className="font-black text-lg text-slate-900 group-hover:text-pi-purple transition-colors leading-tight mb-2 truncate">{work.title}</h3>
-                                        <p className="text-[11px] text-slate-400 font-bold line-clamp-2 leading-relaxed italic mb-3">
-                                            "{work.excerpt}"
-                                        </p>
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-2 border-t border-slate-50">
-                                        <div className="flex items-center gap-4">
-                                            <div className="flex items-center gap-1 text-pi-gold-dark font-black text-[12px]">
-                                                <Star size={14} fill="currentColor" />
-                                                <span>{work.rating || "0.0"}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 text-slate-400 font-black text-[12px]">
-                                                <MessageCircle size={14} />
-                                                <span>{work.votes || 0}</span>
-                                            </div>
-                                        </div>
-                                        <div className="p-2 bg-slate-100 rounded-2xl text-slate-400 group-hover:bg-pi-purple group-hover:text-white transition-all">
-                                            <ChevronRight size={18} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-
-                    {creatorWorks.length === 0 && (
-                        <div className="bg-white p-20 rounded-[50px] border border-dashed border-slate-200 text-center shadow-inner">
-                            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
-                                <BookOpen size={40} />
-                            </div>
-                            <p className="text-slate-400 font-black tracking-tight text-xl">{t('creator_profile_empty_works')}</p>
-                            <p className="text-sm text-slate-300 font-bold mt-2">¡Pronto habrá contenido increíble aquí!</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Tips Section - Conditioned by walletAddress */}
-                {creatorData?.walletAddress && (
-                    <div className="px-6 mt-12 mb-20">
-                        <div className="max-w-2xl mx-auto bg-[#FFFBF0] rounded-[60px] p-10 shadow-2xl shadow-amber-200/20 border border-pi-gold/10 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 w-64 h-64 bg-pi-gold/5 rounded-full blur-3xl -mr-32 -mt-32" />
-
-                            <div className="text-center mb-10">
-                                <h3 className="text-3xl font-black text-slate-900 mb-2 flex items-center justify-center gap-3">
-                                    <Heart size={32} fill="#f2b200" className="text-pi-gold" />
-                                    {t('creator_tips_title')}
-                                </h3>
-                                <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.2em]">{t('creator_tips_sub')}</p>
-                            </div>
-
-                            {donationSuccess ? (
-                                <div className="bg-white/80 backdrop-blur-md rounded-[40px] p-12 text-center animate-in zoom-in-95 shadow-xl">
-                                    <div className="w-20 h-20 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-200">
-                                        <CheckCircle2 size={40} />
-                                    </div>
-                                    <h4 className="text-2xl font-black text-slate-900 mb-2">{t('creator_donate_success')}</h4>
-                                    <p className="text-lg text-slate-500 font-bold italic">¡Tu apoyo hace la diferencia!</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-8">
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                                        {[0.1, 0.5, 1, 5, 10].map(amount => (
-                                            <button
-                                                key={amount}
-                                                onClick={() => handleDonation(amount.toString())}
-                                                className="py-5 bg-white border-2 border-transparent hover:border-pi-gold rounded-3xl font-black text-slate-700 hover:text-pi-gold-dark shadow-sm hover:shadow-lg active:scale-95 transition-all text-lg"
-                                            >
-                                                {amount} Pi
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    <div className="pt-4">
-                                        <div className="flex items-center gap-4 mb-6">
-                                            <div className="h-px bg-pi-gold/10 flex-1" />
-                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">{t('creator_tips_custom')}</span>
-                                            <div className="h-px bg-pi-gold/10 flex-1" />
-                                        </div>
-
-                                        <div className="flex gap-3">
-                                            <div className="relative flex-1">
-                                                <input
-                                                    type="number"
-                                                    value={donationAmount}
-                                                    onChange={(e) => setDonationAmount(e.target.value)}
-                                                    placeholder="0.00"
-                                                    className="w-full bg-white border-2 border-slate-100 rounded-[30px] py-6 pl-14 pr-6 font-black text-2xl outline-none focus:border-pi-gold focus:ring-0 shadow-sm"
-                                                />
-                                                <Coins className="absolute left-5 top-1/2 -translate-y-1/2 text-pi-gold" size={28} fill="currentColor" />
-                                            </div>
-                                            <button
-                                                onClick={() => handleDonation("")}
-                                                disabled={isSubmittingDonation || !donationAmount}
-                                                className="px-10 bg-pi-gold text-white rounded-[30px] font-black shadow-2xl shadow-pi-gold/40 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-                                            >
-                                                {isSubmittingDonation ? <Loader2 className="animate-spin" /> : <Send size={28} />}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Info Section moved inside/below Tips */}
-                            <div className="mt-12 bg-slate-900 rounded-[40px] p-10 text-white text-center shadow-2xl relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-pi-purple/20 rounded-full blur-3xl -mr-32 -mt-32" />
-                                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
-                                    <Info size={32} className="text-white/80" />
-                                </div>
-                                <h4 className="text-xl font-black mb-3">{t('creator_tips_info_title')}</h4>
-                                <p className="text-slate-400 font-medium text-sm leading-relaxed max-w-lg mx-auto">
-                                    {t('creator_tips_info_desc')}
-                                    <br />
-                                    <span className="text-pi-gold font-black uppercase inline-block mt-2">{t('creator_tips_no_commission')}</span>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );
