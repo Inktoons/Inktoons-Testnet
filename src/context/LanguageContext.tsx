@@ -31,7 +31,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     };
 
     const t = (key: keyof typeof translations['es']): string => {
-        return translations[language][key] || translations['es'][key] || key;
+        const trans = translations[language] as any;
+        const fallback = translations['es'] as any;
+        return trans[key] || fallback[key] || key;
     };
 
     // Prevent hydration mismatch by not rendering anything until mounted
