@@ -396,7 +396,15 @@ export default function ExplorePage() {
                                                         {item.title}
                                                     </h4>
                                                     <div className="flex items-center gap-1.5 text-[10px] text-gray-400 font-bold mb-3">
-                                                        <span className="truncate">{item.author}</span>
+                                                        <span
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                router.push(`/creator/${item.author}`);
+                                                            }}
+                                                            className="truncate hover:text-pi-purple cursor-pointer transition-colors"
+                                                        >
+                                                            {item.author}
+                                                        </span>
                                                         <span className="text-gray-200">|</span>
                                                         <span className="text-pi-purple/70 uppercase tracking-tighter">
                                                             {(() => {

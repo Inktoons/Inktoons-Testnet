@@ -31,7 +31,8 @@ import {
     Settings,
     RefreshCcw,
     XCircle,
-    Languages
+    Languages,
+    TrendingUp
 } from "lucide-react";
 import { useContent } from "@/context/ContentContext";
 import { useMissions } from "@/context/MissionContext";
@@ -39,7 +40,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { Language } from "@/data/translations";
 import TopNavbar from "@/components/TopNavbar";
 
-type ViewMode = 'main' | 'favorites' | 'following' | 'history';
+type ViewMode = 'main' | 'favorites' | 'following' | 'history' | 'creator_panel';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -53,6 +54,37 @@ export default function ProfilePage() {
     const [viewMode, setViewMode] = useState<ViewMode>('main');
     const [isMyContentExpanded, setIsMyContentExpanded] = useState(false);
     const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
+    const [currentPiValue, setCurrentPiValue] = useState<number | null>(null);
+
+    // Fetch Pi price from official API (via proxy to avoid CORS)
+    React.useEffect(() => {
+        const fetchPiPrice = async () => {
+            try {
+                const response = await fetch('/api/price');
+                const data = await response.json();
+                if (data && data.price) {
+                    setCurrentPiValue(data.price);
+                }
+            } catch (error) {
+                console.error("Error fetching Pi price in Profile:", error);
+            }
+        };
+        fetchPiPrice();
+        const interval = setInterval(fetchPiPrice, 60000); // Update every minute
+        return () => clearInterval(interval);
+    }, []);
+
+    const piToUsd = (piAmount: number) => {
+        if (!currentPiValue) return (piAmount * 0.01); // Fallback
+        return piAmount * currentPiValue;
+    };
+
+    const usdToPi = (usdAmount: number) => {
+        if (!currentPiValue) return (usdAmount / 0.01); // Fallback
+        return usdAmount / currentPiValue;
+    };
+
+    const withdrawalThresholdPi = currentPiValue ? Math.ceil(10 / currentPiValue) : 1000;
 
     const username = user?.username || "Pionero";
     const initial = username.charAt(0).toUpperCase();
@@ -119,6 +151,7 @@ export default function ProfilePage() {
             case 'favorites': return t('profile_view_favorites');
             case 'following': return t('profile_view_following');
             case 'history': return t('profile_view_history');
+            case 'creator_panel': return t('profile_creator_panel');
             default: return t('profile_title');
         }
     };
@@ -307,7 +340,7 @@ export default function ProfilePage() {
                                         />
                                     </div>
                                     <div className="flex-1">
-                                        <div className="flex items-center gap-2 mb-1">
+                                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                                             <h1 className="text-xl font-black text-slate-900">{username}</h1>
                                             {userData.isFounder ? (
                                                 <div className="px-2 py-0.5 bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black rounded uppercase flex items-center gap-1 shadow-lg border border-white/20 animate-pulse">
@@ -322,9 +355,35 @@ export default function ProfilePage() {
                                         <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-3">
                                             {userData.isFounder ? t('profile_founder_desc') : t('profile_pioneer_desc')}
                                         </p>
+                                        <button
+                                            onClick={() => router.push(`/creator/${username}?edit=true`)}
+                                            className="p-1.5 px-3 bg-slate-50 text-slate-500 hover:text-pi-purple hover:bg-pi-purple/5 transition-all text-[10px] font-extrabold uppercase flex items-center gap-2 border border-slate-100 shadow-sm rounded-xl active:scale-95"
+                                        >
+                                            <Edit2 size={12} /> Editar Perfil Creador
+                                        </button>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Creator Panel Entry Button */}
+                            <motion.button
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => setViewMode('creator_panel')}
+                                className="w-full bg-gradient-to-r from-pi-purple to-indigo-600 p-5 rounded-3xl shadow-lg shadow-pi-purple/20 flex items-center justify-between text-white group overflow-hidden relative"
+                            >
+                                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                <div className="flex items-center gap-4 relative z-10">
+                                    <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
+                                        <BarChart2 size={24} />
+                                    </div>
+                                    <div className="text-left">
+                                        <h3 className="font-black text-lg leading-tight">{t('profile_creator_panel')}</h3>
+                                        <p className="text-xs text-white/70 font-bold uppercase tracking-widest">{t('creator_withdrawal_progress')}</p>
+                                    </div>
+                                </div>
+                                <ChevronRight size={24} className="relative z-10 group-hover:translate-x-1 transition-transform" />
+                            </motion.button>
 
                             {/* Stats/Quick Access */}
                             <div className="grid grid-cols-3 gap-4 font-bold">
@@ -464,13 +523,6 @@ export default function ProfilePage() {
 
                                     {/* WALLET */}
                                     <div className="bg-white rounded-2xl border border-slate-200 p-4 hover:border-pi-purple/30 transition-all flex flex-col h-full relative overflow-hidden">
-                                        {/* MANTENIMIENTO OVERLAY */}
-                                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
-                                            <div className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter border border-amber-200 shadow-sm animate-pulse">
-                                                {t('mantenimiento') || 'MANTENIMIENTO'}
-                                            </div>
-                                        </div>
-
                                         <div className="flex items-center gap-4 mb-4">
                                             <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
                                                 <Wallet className="text-amber-500" size={24} />
@@ -480,16 +532,16 @@ export default function ProfilePage() {
                                                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t('profile_wallet_desc')}</span>
                                             </div>
                                         </div>
-                                        <div className="mt-auto space-y-2 opacity-50 pointer-events-none">
+                                        <div className="mt-auto space-y-2">
                                             <div className="relative">
                                                 <input
                                                     type="text"
-                                                    disabled
                                                     placeholder={t('profile_wallet_placeholder')}
                                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-bold text-slate-700 focus:outline-none focus:border-pi-purple/50 focus:ring-1 focus:ring-pi-purple/50 font-mono"
-                                                    defaultValue={userData.walletAddress || ""}
+                                                    value={userData.walletAddress || ""}
+                                                    onChange={(e) => updateWalletAddress(e.target.value)}
                                                 />
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"><Save size={14} /></div>
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-pi-purple"><Save size={14} /></div>
                                             </div>
                                             <p className="text-[9px] text-slate-400 font-bold px-1 italic">{t('profile_wallet_autosave')}</p>
                                         </div>
@@ -515,13 +567,181 @@ export default function ProfilePage() {
                                         <div className="py-20 text-center text-slate-400 font-bold text-sm">No sigues a ningún autor todavía.</div>
                                     )}
                                 </div>
-                            ) : viewMode === 'history' ? (
-                                <div className="space-y-4">
-                                    {historyItems.length > 0 ? (
-                                        historyItems.map((item, idx) => renderHistoryItem(item, idx))
-                                    ) : (
-                                        <div className="py-20 text-center text-slate-400 font-bold text-sm">Historial vacío.</div>
-                                    )}
+                            ) : viewMode === 'creator_panel' ? (
+                                <div className="space-y-8">
+                                    {/* Main Balance Card - PI (DONATED) */}
+                                    <div className="bg-white rounded-3xl border border-slate-100 p-8 shadow-sm text-center relative overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pi-purple to-indigo-600" />
+                                        <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">{t('creator_total_balance')}</p>
+                                        <div className="flex items-center justify-center gap-2 mb-2">
+                                            <span className="text-5xl font-black text-slate-900">{userData.creatorBalance?.toFixed(2) || "0.00"}</span>
+                                            <div className="flex flex-col items-start leading-none ml-1">
+                                                <span className="text-xs font-bold text-pi-purple uppercase tracking-tighter">Pi</span>
+                                                <span className="text-[10px] font-black text-slate-300 uppercase">donados</span>
+                                            </div>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-bold">
+                                            ≈ ${((userData.creatorBalance || 0) * (currentPiValue || 0)).toFixed(2)} USD Bruto
+                                        </p>
+                                    </div>
+
+                                    {/* Withdrawal Progress Bar (Based on USD Value) */}
+                                    <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
+                                        <div className="flex justify-between items-end mb-4">
+                                            <div>
+                                                <h3 className="font-black text-sm text-slate-900 mb-1">{t('creator_withdrawal_progress')}</h3>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{t('creator_withdrawal_min')}</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-sm font-black text-pi-purple">
+                                                    ${((userData.creatorBalance || 0) * (currentPiValue || 0)).toFixed(2)}
+                                                </span>
+                                                <span className="text-xs text-slate-300 font-bold mx-1">/</span>
+                                                <span className="text-sm font-black text-slate-300">$10</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="w-full h-4 bg-slate-50 rounded-full overflow-hidden border border-slate-100 flex p-1 mb-4">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${Math.min((((userData.creatorBalance || 0) * (currentPiValue || 0)) / 10) * 100, 100)}%` }}
+                                                className="h-full bg-gradient-to-r from-pi-purple to-indigo-500 rounded-full"
+                                            />
+                                        </div>
+
+                                        <div className="bg-pi-purple/5 rounded-2xl p-4 flex items-start gap-3">
+                                            <div className="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center text-pi-purple flex-shrink-0">
+                                                <TrendingUp size={20} />
+                                            </div>
+                                            <p className="text-xs font-bold text-slate-600 leading-relaxed">
+                                                {t('creator_next_withdrawal').replace('{amount}', (Math.max(0, 10 - ((userData.creatorBalance || 0) * (currentPiValue || 0)))).toFixed(2))}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Swap Area & Pi Balance */}
+                                    <div className="bg-gradient-to-br from-indigo-50 to-pi-purple/5 rounded-[2.5rem] p-6 border border-pi-purple/10 shadow-sm relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-pi-purple/5 rounded-full -mr-12 -mt-12 transition-all group-hover:scale-110" />
+                                        <div className="relative z-10 flex flex-col gap-4">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <h3 className="font-extrabold text-sm text-slate-800 tracking-tight">{t('creator_swap_title')}</h3>
+                                                    <p className="text-[10px] font-bold text-slate-500 uppercase leading-none mt-1">{t('creator_swap_desc')}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 border border-white/80">
+                                                {/* Step-by-Step Breakdown */}
+                                                <div className="space-y-4 mb-6 pt-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <div className="w-1.5 h-4 bg-pi-purple rounded-full" />
+                                                        <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-wider">{t('creator_gross_value')}</h4>
+                                                    </div>
+
+                                                    <div className="space-y-2 bg-white/40 rounded-xl p-3 border border-white/60">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-[10px] text-slate-500 font-bold">Pi Donado Total</span>
+                                                            <span className="text-[11px] text-slate-900 font-black">{userData.creatorBalance?.toFixed(4) || "0.0000"} Pi</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center text-amber-500 bg-amber-50/50 rounded-lg px-2 py-1">
+                                                            <span className="text-[10px] font-bold flex items-center gap-1">
+                                                                <Shield size={10} /> {t('creator_platform_fee')}
+                                                            </span>
+                                                            <span className="text-[10px] font-black">-{((userData.creatorBalance || 0) * 0.15).toFixed(4)} Pi</span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center border-t border-slate-100/50 pt-2">
+                                                            <span className="text-[10px] text-slate-500 font-bold">Cotización (Coingecko)</span>
+                                                            <span className="text-[10px] text-pi-purple font-black">${currentPiValue?.toFixed(4) || "---"} USD</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Final Quote Card */}
+                                                <div className="bg-gradient-to-br from-white to-pi-purple/5 rounded-2xl p-4 border border-pi-purple/20 shadow-sm relative overflow-hidden mb-6">
+                                                    <div className="absolute top-0 right-0 p-2 opacity-10">
+                                                        <RefreshCcw size={40} className={!currentPiValue ? "animate-spin" : ""} />
+                                                    </div>
+                                                    <p className="text-[9px] font-black text-pi-purple uppercase tracking-widest mb-1">{t('creator_final_amount')}</p>
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-3xl font-black text-slate-900 tracking-tighter">
+                                                            {((userData.creatorBalance || 0) * 0.85).toFixed(4)}
+                                                        </span>
+                                                        <span className="text-sm font-black text-pi-purple">Pi</span>
+                                                    </div>
+                                                    <p className="text-[8px] font-bold text-slate-400 mt-2 flex items-center gap-1 uppercase">
+                                                        <RefreshCcw size={8} className="animate-pulse" /> Actualizado en tiempo real
+                                                    </p>
+                                                </div>
+
+                                                <button
+                                                    disabled={!currentPiValue || ((userData.creatorBalance || 0) * (currentPiValue || 0)) < 10 || !userData.walletAddress}
+                                                    className="w-full py-4 bg-pi-purple text-white rounded-xl font-black text-sm shadow-lg shadow-pi-purple/20 hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50 uppercase tracking-widest"
+                                                >
+                                                    {t('creator_exchange_btn')}
+                                                </button>
+
+                                                {!userData.walletAddress && (
+                                                    <p className="mt-3 text-[9px] font-bold text-amber-500 text-center uppercase tracking-tight">
+                                                        ⚠️ {t('creator_setup_wallet')}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Transaction History for Pi */}
+                                    <div className="space-y-4">
+                                        <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest ml-2">{t('creator_history')}</h3>
+                                        <div className="space-y-3">
+                                            {userData.creatorTransactions && userData.creatorTransactions.length > 0 ? (
+                                                userData.creatorTransactions.map((tx: any) => (
+                                                    <div key={tx.id} className="bg-white rounded-2xl border border-slate-100 p-4 flex items-center justify-between group hover:border-pi-purple/20 transition-all">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-pi-purple/5 text-pi-purple`}>
+                                                                <RefreshCcw size={20} className="text-pi-purple" />
+                                                            </div>
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="font-bold text-slate-800 text-sm">{tx.origin}</p>
+                                                                    <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-green-100 text-green-600">
+                                                                        {t('creator_status_completed')}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-[10px] text-slate-400 font-bold uppercase truncate max-w-[150px]">{tx.work}</p>
+                                                                <p className="text-[9px] text-slate-300 font-bold">{new Date(tx.date).toLocaleDateString()}</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-black text-slate-900">+{tx.amount?.toFixed(4)} Pi</p>
+                                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                                                {tx.type === 'DONATION' ? t('creator_type_donation') : t('creator_type_payment')}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="py-10 text-center text-slate-400 font-bold text-sm">No hay transacciones aún.</div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Security & Fund Destination */}
+                                    <div className="bg-slate-900 rounded-[2rem] p-6 text-white text-center relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl transition-all group-hover:bg-white/10" />
+                                        <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
+                                            <Shield size={24} className="text-indigo-300" />
+                                        </div>
+                                        <h4 className="font-black text-sm mb-2 uppercase tracking-widest text-indigo-200">Destino de Fondos</h4>
+                                        <div className="bg-white/10 rounded-2xl p-4 mb-4 border border-white/10 backdrop-blur-sm">
+                                            <p className="text-[10px] text-white/50 uppercase font-black tracking-widest mb-1">Tu Billetera Pi vinculada:</p>
+                                            <p className="text-xs font-mono font-bold text-indigo-300 break-all">
+                                                {userData.walletAddress || "No configurada en Perfil"}
+                                            </p>
+                                        </div>
+                                        <p className="text-[10px] font-medium text-white/60 leading-relaxed px-4 text-center">
+                                            Tus donaciones acumuladas se enviarán de forma segura a esta billetera tras el intercambio, descontando la comisión del servicio.
+                                        </p>
+                                    </div>
                                 </div>
                             ) : (
                                 renderWebtoonList(getFilteredWebtoons())
@@ -554,6 +774,6 @@ export default function ProfilePage() {
                     <span className="text-[10px] font-bold">{t('nav_profile')}</span>
                 </button>
             </div>
-        </div >
+        </div>
     );
 }

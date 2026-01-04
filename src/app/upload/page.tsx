@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
     ArrowLeft, Image as ImageIcon, Upload, X, Check, Lock,
     Coins, Calendar, Eye, AlertCircle, Loader2, Trash2, Edit3, Keyboard,
-    ChevronUp, ChevronDown, Plus, Play, Globe
+    ChevronUp, ChevronDown, Plus, Play, Globe, Heart
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useContent, Chapter, Webtoon } from "@/context/ContentContext";
@@ -140,6 +140,14 @@ function UploadPageContent() {
     const [chapterPages, setChapterPages] = useState<{ id: string, url: string, file?: File }[]>([]);
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
+    const { toggleTips, updateCreatorBio } = useUserData();
+    const [localTipsEnabled, setLocalTipsEnabled] = useState(userData.tipsEnabled || false);
+    const [localBio, setLocalBio] = useState(userData.creatorDescription || "");
+
+    useEffect(() => {
+        setLocalTipsEnabled(userData.tipsEnabled || false);
+        setLocalBio(userData.creatorDescription || "");
+    }, [userData.tipsEnabled, userData.creatorDescription]);
 
     const movePage = (index: number, direction: 'up' | 'down') => {
         const newPages = [...chapterPages];
@@ -200,6 +208,10 @@ function UploadPageContent() {
         if (promptConfig.field === "year") setYear(val);
         if (promptConfig.field === "chapterTitle") setChapterTitle(val);
         if (promptConfig.field === "description") setDescription(val);
+        if (promptConfig.field === "creatorBio") {
+            setLocalBio(val);
+            updateCreatorBio(val);
+        }
         setPromptConfig({ ...promptConfig, isOpen: false });
     };
 
@@ -801,6 +813,59 @@ function UploadPageContent() {
                                                 <p className="text-[10px] font-bold text-amber-700 leading-relaxed italic">
                                                     "{t('upload_early_access_info')}"
                                                 </p>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                        </div>
+
+                        {/* Creator Tips Section */}
+                        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-5">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-black text-sm text-gray-800">{t('upload_creator_tips_title')}</h3>
+                                        <div className="px-1.5 py-0.5 bg-pi-purple/10 text-pi-purple text-[8px] font-black rounded uppercase">{t('upload_direct_tag')}</div>
+                                    </div>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t('upload_creator_tips_desc')}</p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const newVal = !localTipsEnabled;
+                                        setLocalTipsEnabled(newVal);
+                                        toggleTips(newVal);
+                                    }}
+                                    className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 shadow-inner ${localTipsEnabled ? 'bg-pi-purple' : 'bg-gray-200'}`}
+                                >
+                                    <motion.div
+                                        animate={{ x: localTipsEnabled ? 24 : 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        className="w-6 h-6 bg-white rounded-full shadow-lg flex items-center justify-center"
+                                    >
+                                        <Heart size={12} className={localTipsEnabled ? 'text-pi-purple' : 'text-gray-300'} fill={localTipsEnabled ? "currentColor" : "none"} />
+                                    </motion.div>
+                                </button>
+                            </div>
+
+                            <AnimatePresence>
+                                {localTipsEnabled && (
+                                    <motion.div
+                                        initial={{ opacity: 0, height: 0 }}
+                                        animate={{ opacity: 1, height: "auto" }}
+                                        exit={{ opacity: 0, height: 0 }}
+                                        className="space-y-4 overflow-hidden"
+                                    >
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_creator_description_label')}</label>
+                                            <div
+                                                onClick={() => openPrompt(t('upload_creator_description_label'), "creatorBio", localBio)}
+                                                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl flex justify-between items-start cursor-pointer hover:bg-gray-100 transition-colors min-h-[100px]"
+                                            >
+                                                <span className={localBio ? "text-sm text-black font-medium leading-relaxed" : "text-sm text-gray-400"}>
+                                                    {localBio || t('upload_creator_description_placeholder')}
+                                                </span>
+                                                <Edit3 size={16} className="text-pi-purple/40 flex-shrink-0 mt-1" />
                                             </div>
                                         </div>
                                     </motion.div>

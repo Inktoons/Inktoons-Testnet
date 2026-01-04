@@ -33,7 +33,8 @@ import {
     Home as HomeIcon,
     Search,
     User,
-    Upload
+    Upload,
+    Loader2
 } from "lucide-react";
 import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
@@ -42,6 +43,7 @@ import { useMissions } from "@/context/MissionContext";
 import NotificationDropdown from "@/components/NotificationDropdown";
 import { useLanguage } from "@/context/LanguageContext";
 import BottomNavbar from "@/components/BottomNavbar";
+import { SupabaseService } from "@/lib/supabaseService";
 import { Wallet, Globe, Languages } from "lucide-react";
 
 interface Comment {
@@ -60,7 +62,7 @@ export default function MangaDetailPage() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const requestedTab = searchParams.get('tab');
-    const { user, authenticate, loading } = usePi();
+    const { user, authenticate, loading, createPayment } = usePi();
     const { t, language, setLanguage } = useLanguage();
     const {
         isFavorite,
@@ -89,6 +91,12 @@ export default function MangaDetailPage() {
     const [showUnlockModal, setShowUnlockModal] = useState(false);
     const [showNotifications, setShowNotifications] = useState(false);
     const [showLangSelector, setShowLangSelector] = useState(false);
+
+    // Tip State
+    const [authorData, setAuthorData] = useState<any>(null);
+    const [donationAmount, setDonationAmount] = useState("");
+    const [donationSuccess, setDonationSuccess] = useState(false);
+    const [isSubmittingDonation, setIsSubmittingDonation] = useState(false);
 
     const unreadCount = (userData.notifications || []).filter(n => !n.read).length;
     const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
@@ -138,6 +146,53 @@ export default function MangaDetailPage() {
         }
     }, [news?.id, trackAction]);
 
+    React.useEffect(() => {
+        const fetchAuthor = async () => {
+            if (news?.author) {
+                const data = await SupabaseService.getUserByUsername(news.author);
+                setAuthorData(data);
+            }
+        };
+        fetchAuthor();
+    }, [news?.author]);
+
+    const handleDonation = async (amount: string) => {
+        const finalAmount = amount || donationAmount;
+        if (!finalAmount || isNaN(Number(finalAmount)) || Number(finalAmount) <= 0) {
+            alert(t('creator_donate_invalid_amount'));
+            return;
+        }
+
+        if (!user) {
+            authenticate();
+            return;
+        }
+
+        try {
+            setIsSubmittingDonation(true);
+            await createPayment(
+                Number(finalAmount),
+                t('creator_donate_memo').replace('{username}', news?.author || ""),
+                {
+                    type: "DIRECT_DONATION",
+                    recipient_uid: authorData?.id,
+                    recipient_username: news?.author || ""
+                },
+                () => {
+                    setDonationSuccess(true);
+                    setTimeout(() => {
+                        setDonationSuccess(false);
+                        setDonationAmount("");
+                    }, 5000);
+                }
+            );
+        } catch (error) {
+            console.error("Donation error:", error);
+        } finally {
+            setIsSubmittingDonation(false);
+        }
+    };
+
 
     if (!news) {
         return (
@@ -155,7 +210,7 @@ export default function MangaDetailPage() {
         );
     }
 
-    const { createPayment } = usePi();
+
 
     // Mock data to match the screenshot richness
     const status = "En progreso";
@@ -526,7 +581,10 @@ export default function MangaDetailPage() {
                             <div className="mb-10">
                                 <h3 className="text-gray-400 text-xs font-bold uppercase mb-3 px-1">{t('detail_publisher_title')}</h3>
                                 <div className="bg-white rounded-3xl border border-slate-100 p-5 flex items-center justify-between shadow-sm group">
-                                    <div className="flex items-center gap-4">
+                                    <div
+                                        onClick={() => news && router.push(`/creator/${news.author}`)}
+                                        className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+                                    >
                                         <div className="relative">
                                             {/* Safe logic for frame */}
                                             <div className={`w-14 h-14 rounded-full flex items-center justify-center text-white text-lg font-black shadow-lg border-2 overflow-hidden relative ${(user && news && user.username === news.author && userData?.isFounder)
@@ -572,6 +630,89 @@ export default function MangaDetailPage() {
                                     </button>
                                 </div>
                             </div>
+
+                            {/* Tips Section */}
+                            {authorData?.tipsEnabled && (
+                                <div className="mb-10 bg-gradient-to-br from-pi-gold/5 via-white to-amber-50 rounded-[40px] p-8 shadow-xl shadow-amber-200/20 border border-pi-gold/10 overflow-hidden relative group">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-pi-gold/10 rounded-full blur-3xl -mr-16 -mt-16" />
+
+                                    <div className="flex items-center justify-between mb-6 relative z-10">
+                                        <div>
+                                            <h3 className="text-lg font-black text-slate-900 mb-1 flex items-center gap-2">
+                                                <Heart size={20} fill="#f2b200" className="text-pi-gold" />
+                                                {t('creator_tips_title')}
+                                            </h3>
+                                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{t('creator_tips_sub')}</p>
+                                        </div>
+                                    </div>
+
+                                    {donationSuccess ? (
+                                        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 text-center animate-in zoom-in-95 relative z-10 border border-green-100">
+                                            <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-200">
+                                                <CheckCircle2 size={32} />
+                                            </div>
+                                            <h4 className="text-xl font-black text-slate-900 mb-1">{t('creator_donate_success')}</h4>
+                                            <p className="text-sm text-slate-500 font-bold">¡Tu apoyo hace la diferencia!</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4 relative z-10">
+                                            <div className="grid grid-cols-5 gap-2">
+                                                {[0.1, 0.5, 1, 5, 10].map(amount => (
+                                                    <button
+                                                        key={amount}
+                                                        onClick={() => handleDonation(amount.toString())}
+                                                        className="py-3 bg-white border-2 border-transparent hover:border-pi-gold rounded-2xl font-black text-slate-700 hover:text-pi-gold-dark shadow-sm hover:shadow-md active:scale-95 transition-all text-sm"
+                                                    >
+                                                        {amount}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <div className="pt-2">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="h-px bg-slate-100 flex-1" />
+                                                    <span className="text-[10px] font-black text-slate-300 uppercase">{t('creator_tips_custom')}</span>
+                                                    <div className="h-px bg-slate-100 flex-1" />
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <input
+                                                            type="number"
+                                                            value={donationAmount}
+                                                            onChange={(e) => setDonationAmount(e.target.value)}
+                                                            placeholder="0.00"
+                                                            className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-black text-slate-900 outline-none focus:border-pi-gold focus:ring-0 shadow-sm transition-all"
+                                                        />
+                                                        <Coins className="absolute left-4 top-1/2 -translate-y-1/2 text-pi-gold" size={24} fill="currentColor" />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleDonation("")}
+                                                        disabled={isSubmittingDonation || !donationAmount}
+                                                        className="px-8 bg-pi-gold text-white rounded-2xl font-black shadow-xl shadow-pi-gold/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                                                    >
+                                                        {isSubmittingDonation ? <Loader2 className="animate-spin text-white" /> : <Send size={20} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Info Tip Footer */}
+                                            <div className="mt-8 bg-slate-900 rounded-[30px] p-8 text-white text-center shadow-2xl relative overflow-hidden group">
+                                                <div className="absolute top-0 right-0 w-64 h-64 bg-pi-purple/20 rounded-full blur-3xl -mr-32 -mt-32" />
+                                                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                                                    <Info size={32} className="text-white/80" />
+                                                </div>
+                                                <h4 className="text-xl font-black mb-3">{t('creator_tips_info_title')}</h4>
+                                                <p className="text-slate-400 font-medium text-sm leading-relaxed px-2">
+                                                    {t('creator_tips_info_desc')}
+                                                    <br />
+                                                    <span className="text-pi-gold font-black uppercase inline-block mt-2">{t('creator_tips_no_commission')}</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Recommendations */}
                             <div>
@@ -751,7 +892,10 @@ export default function MangaDetailPage() {
                                 {comments.map((comment) => (
                                     <div key={comment.id} className="flex gap-4">
                                         {/* Avatar */}
-                                        <div className="flex-shrink-0">
+                                        <div
+                                            onClick={() => router.push(`/creator/${comment.username}`)}
+                                            className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                        >
                                             <div className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden">
                                                 {/* If avatar is length 1, treat as initial, else image */}
                                                 {comment.avatar.length === 1 ? (
@@ -765,7 +909,10 @@ export default function MangaDetailPage() {
                                         {/* Content */}
                                         <div className="flex-1">
                                             <div className="flex items-center justify-between mb-1">
-                                                <div className="flex items-center gap-2">
+                                                <div
+                                                    onClick={() => router.push(`/creator/${comment.username}`)}
+                                                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                                                >
                                                     <span className="font-bold text-sm text-gray-900">{comment.username}</span>
                                                 </div>
                                                 <span className="text-xs text-gray-400 font-medium">{comment.timestamp}</span>

@@ -314,9 +314,42 @@ export class SupabaseService {
                 likedChapters: data.liked_chapters || [],
                 isFounder: data.is_founder || false,
                 missions: data.missions || null,
+                creatorBalance: data.creator_balance || 0,
+                creatorInksBalance: data.creator_inks_balance || 0,
+                creatorTransactions: data.creator_transactions || [],
+                tipsEnabled: data.tips_enabled || false,
+                creatorDescription: data.creator_description || "",
+                username: data.username || "" // Added username
             };
         } catch (error) {
             console.error('Error fetching user data from Supabase:', error);
+            return null;
+        }
+    }
+
+    static async getUserByUsername(username: string): Promise<any | null> {
+        if (!supabase) return null; // Added check for supabase
+        try {
+            const { data, error } = await supabase
+                .from('user_data')
+                .select('*')
+                .eq('username', username)
+                .single();
+
+            if (error) throw error;
+            if (!data) return null;
+
+            return {
+                id: data.user_id,
+                balance: data.inks || 0,
+                creatorBalance: data.creator_balance || 0,
+                creatorDescription: data.creator_description || "",
+                tipsEnabled: data.tips_enabled || false,
+                walletAddress: data.wallet_address || "",
+                username: data.username || ""
+            };
+        } catch (error) {
+            console.error('Error fetching user by username:', error);
             return null;
         }
     }
@@ -348,6 +381,12 @@ export class SupabaseService {
             if (data.likedChapters !== undefined) upsertData.liked_chapters = data.likedChapters;
             if (data.isFounder !== undefined) upsertData.is_founder = data.isFounder;
             if (data.missions !== undefined) upsertData.missions = data.missions;
+            if (data.creatorBalance !== undefined) upsertData.creator_balance = data.creatorBalance;
+            if (data.creatorInksBalance !== undefined) upsertData.creator_inks_balance = data.creatorInksBalance;
+            if (data.creatorTransactions !== undefined) upsertData.creator_transactions = data.creatorTransactions;
+            if (data.tipsEnabled !== undefined) upsertData.tips_enabled = data.tipsEnabled;
+            if (data.creatorDescription !== undefined) upsertData.creator_description = data.creatorDescription;
+            if (data.username !== undefined) upsertData.username = data.username; // Save username too!
 
             const { error } = await supabase
                 .from('user_data')

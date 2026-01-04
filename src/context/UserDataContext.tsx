@@ -15,6 +15,16 @@ export interface Notification {
     icon?: string;
 }
 
+export interface CreatorTransaction {
+    id: string;
+    origin: string;
+    work: string;
+    type: 'DONATION' | 'PAYMENT';
+    amount: number;
+    status: 'PENDING' | 'COMPLETED';
+    date: number;
+}
+
 interface UserData {
     favorites: string[];
     history: string[];
@@ -33,6 +43,12 @@ interface UserData {
     };
     likedChapters?: string[];
     isFounder?: boolean;
+    creatorBalance?: number;
+    creatorInksBalance?: number;
+    creatorTransactions?: CreatorTransaction[];
+    tipsEnabled?: boolean;
+    creatorDescription?: string;
+    username?: string;
 }
 
 export interface Toast {
@@ -69,6 +85,9 @@ interface UserDataContextType {
     toggleLikeChapter: (webtoonId: string, chapterId: string) => void;
     isChapterLiked: (webtoonId: string, chapterId: string) => boolean;
     cancelSubscription: () => void;
+    addCreatorTransaction: (tx: Omit<CreatorTransaction, 'id' | 'date' | 'status'>) => void;
+    updateCreatorBio: (bio: string) => void;
+    toggleTips: (enabled: boolean) => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -85,11 +104,16 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         lastRead: {},
         readChapters: {},
         profileImage: undefined,
-        balance: 50,
+        balance: 0,
         notifications: [],
         censorshipEnabled: true,
         walletAddress: "",
-        likedChapters: []
+        likedChapters: [],
+        creatorBalance: 0.00,
+        creatorInksBalance: 0,
+        creatorTransactions: [],
+        tipsEnabled: false,
+        creatorDescription: ""
     });
 
     useEffect(() => {
@@ -126,12 +150,17 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         if (loading) return;
         localStorage.setItem("inktoons_user_data", JSON.stringify(userData));
         if (user?.uid) {
+            // Sync username if missing or changed
+            if (user.username && userData.username !== user.username) {
+                setUserData(prev => ({ ...prev, username: user.username }));
+            }
+
             const timeoutId = setTimeout(() => {
                 SupabaseService.saveUserData(user.uid, userData);
             }, 1000);
             return () => clearTimeout(timeoutId);
         }
-    }, [userData, user?.uid, loading]);
+    }, [userData, user, loading]);
 
     const toggleFavorite = useCallback((id: string) => {
         setUserData(prev => {
@@ -265,6 +294,32 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
+    const addCreatorTransaction = useCallback((txData: Omit<CreatorTransaction, 'id' | 'date' | 'status'>) => {
+        setUserData(prev => {
+            const newTx: CreatorTransaction = {
+                ...txData,
+                id: Math.random().toString(36).substr(2, 9),
+                date: Date.now(),
+                status: 'COMPLETED'
+            };
+            const isInk = txData.work === "Donación de Inks";
+            return {
+                ...prev,
+                creatorBalance: isInk ? (prev.creatorBalance || 0) : (prev.creatorBalance || 0) + txData.amount,
+                creatorInksBalance: isInk ? (prev.creatorInksBalance || 0) + txData.amount : (prev.creatorInksBalance || 0),
+                creatorTransactions: [newTx, ...(prev.creatorTransactions || [])]
+            };
+        });
+    }, []);
+
+    const updateCreatorBio = useCallback((bio: string) => {
+        setUserData(prev => ({ ...prev, creatorDescription: bio }));
+    }, []);
+
+    const toggleTips = useCallback((enabled: boolean) => {
+        setUserData(prev => ({ ...prev, tipsEnabled: enabled }));
+    }, []);
+
     const isFavorite = useCallback((id: string) => userData.favorites.includes(id), [userData.favorites]);
     const isInHistory = useCallback((id: string) => userData.history.includes(id), [userData.history]);
     const isFollowingAuthor = useCallback((authorName: string) => userData.following.includes(authorName), [userData.following]);
@@ -275,7 +330,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     return (
         <UserDataContext.Provider value={{
             userData, loading, toast, clearToast, toggleFavorite, addToHistory, toggleFollowAuthor, rateWebtoon, setProfileImage, addBalance, setSubscription, isFavorite, isInHistory, isFollowingAuthor, getUserRating, getLastReadChapter, isChapterRead, updateReadingProgress,
-            addNotification, markNotificationRead, clearNotifications, toggleCensorship, updateWalletAddress, toggleLikeChapter, isChapterLiked, cancelSubscription
+            addNotification, markNotificationRead, clearNotifications, toggleCensorship, updateWalletAddress, toggleLikeChapter, isChapterLiked, cancelSubscription, addCreatorTransaction,
+            updateCreatorBio, toggleTips
         }}>
             {children}
         </UserDataContext.Provider>

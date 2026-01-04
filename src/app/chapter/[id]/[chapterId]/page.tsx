@@ -11,6 +11,10 @@ import { useContent } from "@/context/ContentContext";
 import { mockNews } from "@/data/mockNews";
 import { useUserData } from "@/context/UserDataContext";
 import { useMissions } from "@/context/MissionContext";
+import { usePi } from "@/components/PiNetworkProvider";
+import { useLanguage } from "@/context/LanguageContext";
+import { SupabaseService } from "@/lib/supabaseService";
+import { Coins, Send, Info } from "lucide-react";
 
 export default function ChapterReaderPage() {
     const params = useParams();
@@ -25,7 +29,15 @@ export default function ChapterReaderPage() {
     const { getWebtoon } = useContent();
     const { updateReadingProgress, userData, toggleLikeChapter, isChapterLiked } = useUserData();
     const { trackAction } = useMissions();
+    const { createPayment, user, authenticate } = usePi();
+    const { t } = useLanguage();
     const isLiked = isChapterLiked(id, chapterId);
+
+    // Tip State
+    const [authorData, setAuthorData] = useState<any>(null);
+    const [donationAmount, setDonationAmount] = useState("");
+    const [donationSuccess, setDonationSuccess] = useState(false);
+    const [isSubmittingDonation, setIsSubmittingDonation] = useState(false);
 
     const [isDownloading, setIsDownloading] = useState(false);
 
@@ -51,6 +63,53 @@ export default function ChapterReaderPage() {
         setLoadingNext(false);
         setLoadingMenu(false);
     }, [chapterId]);
+
+    useEffect(() => {
+        const fetchAuthor = async () => {
+            if (webtoon?.author) {
+                const data = await SupabaseService.getUserByUsername(webtoon.author);
+                setAuthorData(data);
+            }
+        };
+        fetchAuthor();
+    }, [webtoon?.author]);
+
+    const handleDonation = async (amount: string) => {
+        const finalAmount = amount || donationAmount;
+        if (!finalAmount || isNaN(Number(finalAmount)) || Number(finalAmount) <= 0) {
+            alert(t('creator_donate_invalid_amount'));
+            return;
+        }
+
+        if (!user) {
+            authenticate();
+            return;
+        }
+
+        try {
+            setIsSubmittingDonation(true);
+            await createPayment(
+                Number(finalAmount),
+                t('creator_donate_memo').replace('{username}', webtoon?.author || ""),
+                {
+                    type: "DIRECT_DONATION",
+                    recipient_uid: authorData?.id,
+                    recipient_username: webtoon?.author || ""
+                },
+                () => {
+                    setDonationSuccess(true);
+                    setTimeout(() => {
+                        setDonationSuccess(false);
+                        setDonationAmount("");
+                    }, 5000);
+                }
+            );
+        } catch (error) {
+            console.error("Donation error:", error);
+        } finally {
+            setIsSubmittingDonation(false);
+        }
+    };
 
     if (!webtoon || !chapter) {
         return (
@@ -268,6 +327,89 @@ export default function ChapterReaderPage() {
                                 <ImageIcon size={48} className="mx-auto mb-4 opacity-20" />
                                 <p className="text-lg font-bold">Sin imágenes</p>
                                 <p className="text-sm mt-2">Este episodio no tiene contenido aún.</p>
+                            </div>
+                        )}
+
+                        {/* Tips Section */}
+                        {authorData?.tipsEnabled && (
+                            <div className="px-6 py-12 border-t border-white/5 bg-gradient-to-b from-black/40 to-black/60">
+                                <div className="max-w-md mx-auto bg-gradient-to-br from-pi-gold/10 via-neutral-900 to-amber-900/10 rounded-[40px] p-8 shadow-2xl border border-pi-gold/10 relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-pi-gold/5 rounded-full blur-3xl -mr-16 -mt-16" />
+
+                                    <div className="text-center mb-8 relative z-10">
+                                        <div className="w-16 h-16 bg-pi-gold/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-pi-gold/20 shadow-inner">
+                                            <Heart size={32} fill="#f2b200" className="text-pi-gold" />
+                                        </div>
+                                        <h3 className="text-2xl font-black text-white mb-2">{t('creator_tips_title')}</h3>
+                                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{t('creator_tips_sub')}</p>
+                                    </div>
+
+                                    {donationSuccess ? (
+                                        <div className="bg-white/5 backdrop-blur-md rounded-3xl p-8 text-center animate-in zoom-in-95 relative z-10 border border-green-500/20">
+                                            <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/20">
+                                                <CheckCircle2 size={32} />
+                                            </div>
+                                            <h4 className="text-xl font-black text-white mb-1">{t('creator_donate_success')}</h4>
+                                            <p className="text-sm text-gray-400 font-bold">¡Tu apoyo hace la diferencia!</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-6 relative z-10">
+                                            <div className="grid grid-cols-5 gap-2">
+                                                {[0.1, 0.5, 1, 5, 10].map(amount => (
+                                                    <button
+                                                        key={amount}
+                                                        onClick={() => handleDonation(amount.toString())}
+                                                        className="py-3 bg-white/5 border border-white/10 hover:border-pi-gold rounded-2xl font-black text-gray-300 hover:text-white shadow-sm active:scale-95 transition-all text-sm backdrop-blur-sm"
+                                                    >
+                                                        {amount}
+                                                    </button>
+                                                ))}
+                                            </div>
+
+                                            <div className="pt-2">
+                                                <div className="flex items-center gap-3 mb-4">
+                                                    <div className="h-px bg-white/5 flex-1" />
+                                                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-tighter">{t('creator_tips_custom')}</span>
+                                                    <div className="h-px bg-white/5 flex-1" />
+                                                </div>
+
+                                                <div className="flex gap-2">
+                                                    <div className="relative flex-1">
+                                                        <input
+                                                            type="number"
+                                                            value={donationAmount}
+                                                            onChange={(e) => setDonationAmount(e.target.value)}
+                                                            placeholder="0.00"
+                                                            className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 pl-12 pr-4 font-black text-white outline-none focus:border-pi-gold focus:ring-0 transition-all text-lg"
+                                                        />
+                                                        <Coins className="absolute left-4 top-1/2 -translate-y-1/2 text-pi-gold" size={24} fill="currentColor" />
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleDonation("")}
+                                                        disabled={isSubmittingDonation || !donationAmount}
+                                                        className="px-8 bg-pi-gold text-white rounded-2xl font-black shadow-xl shadow-pi-gold/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+                                                    >
+                                                        {isSubmittingDonation ? <Loader2 className="animate-spin text-white" /> : <Send size={20} />}
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            {/* Info Tip Footer */}
+                                            <div className="mt-8 bg-neutral-950/80 rounded-[30px] p-6 text-white text-center shadow-2xl relative overflow-hidden group border border-white/5">
+                                                <div className="absolute top-0 right-0 w-48 h-48 bg-pi-purple/10 rounded-full blur-3xl -mr-24 -mt-24" />
+                                                <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
+                                                    <Info size={24} className="text-gray-400" />
+                                                </div>
+                                                <h4 className="text-sm font-black mb-2">{t('creator_tips_info_title')}</h4>
+                                                <p className="text-gray-500 font-medium text-[10px] leading-relaxed">
+                                                    {t('creator_tips_info_desc')}
+                                                    <br />
+                                                    <span className="text-pi-gold font-black uppercase inline-block mt-1">{t('creator_tips_no_commission')}</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
 

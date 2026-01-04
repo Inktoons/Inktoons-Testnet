@@ -13,8 +13,11 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Inktoons - Cómics y Noticias de Pi Network",
+  title: "Inktoons - Read, Create Comics",
   description: "Tu portal premium de lectura en el ecosistema Pi. Cómics, noticias y más.",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({

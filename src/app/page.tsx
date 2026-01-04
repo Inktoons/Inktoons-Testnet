@@ -11,14 +11,37 @@ import { Search, Upload, BookOpen, User, Home as HomeIcon, ChevronRight, Compass
 import TopNavbar from "@/components/TopNavbar";
 import BottomNavbar from "@/components/BottomNavbar";
 import { useLanguage } from "@/context/LanguageContext";
+import { useUserData } from "@/context/UserDataContext";
+import { Fingerprint, RefreshCw } from "lucide-react";
 
 export default function Home() {
   const router = useRouter();
-  const { user, authenticate, loading } = usePi();
-  const { webtoons } = useContent();
   const { t } = useLanguage();
+  const { webtoons } = useContent();
+  const { userData, addCreatorTransaction } = useUserData();
+  const { user, authenticate, loading, createPayment } = usePi();
   const [activeTab, setActiveTab] = useState("Nuevo");
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [supportingArtist, setSupportingArtist] = useState<string | null>(null);
+  const [currentPiValue, setCurrentPiValue] = useState<number | null>(null);
+
+  // Fetch Pi Price
+  React.useEffect(() => {
+    const fetchPiPrice = async () => {
+      try {
+        const response = await fetch('/api/price');
+        const data = await response.json();
+        if (data.price) {
+          setCurrentPiValue(data.price);
+        }
+      } catch (error) {
+        console.error("Error fetching Pi price:", error);
+      }
+    };
+    fetchPiPrice();
+    const interval = setInterval(fetchPiPrice, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const EXCLUDED_CATEGORIES = ['hentai', 'gore', '+18', 'adult', 'erotic', 'ecchi', 'nsfw'];
 
@@ -46,6 +69,51 @@ export default function Home() {
       router.push(path);
     } else {
       setShowLoginModal(true);
+    }
+  };
+
+  const handleArtistSupport = async (artist: any) => {
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    if (!currentPiValue) {
+      alert("Esperando cotización de Pi...");
+      return;
+    }
+
+    // Donation amount equivalent to $1.00 USD
+    const PI_AMOUNT = Number((1.0 / currentPiValue).toFixed(4));
+
+    setSupportingArtist(artist.name);
+
+    try {
+      await createPayment(
+        PI_AMOUNT,
+        `Donación Inktoons para ${artist.name}`,
+        {
+          artistName: artist.name,
+          type: "ARTIST_SUPPORT",
+          usdValue: 1.0
+        }
+      );
+
+      addCreatorTransaction({
+        origin: user.username || "Pionero",
+        work: `Apoyo a ${artist.name}`,
+        type: 'DONATION',
+        amount: PI_AMOUNT
+      });
+
+      alert(`¡Gracias! Has apoyado a ${artist.name} con ${PI_AMOUNT} Pi.`);
+    } catch (error: any) {
+      console.error("Error en el pago:", error);
+      if (error?.message !== "CANCELLED_BY_USER") {
+        alert("Hubo un error al procesar el pago. Inténtalo de nuevo.");
+      }
+    } finally {
+      setSupportingArtist(null);
     }
   };
 
@@ -163,7 +231,7 @@ export default function Home() {
         </section>
 
         {/* Section: Rankings Populares */}
-        <section className="mb-0">
+        <section className="mb-20">
           <div className="flex items-center justify-between mb-8">
             <div className="flex flex-col gap-1">
               <h3 className="text-2xl font-black flex items-center gap-2 text-slate-900">
@@ -218,6 +286,73 @@ export default function Home() {
                     </div>
                   </div>
                 </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* Section: Top Artist */}
+        <section className="mb-14">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col gap-1">
+              <h3 className="text-2xl font-black flex items-center gap-2 text-slate-900">
+                🎨 {t('home_top_artists')}
+              </h3>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{t('home_top_artists_desc')}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              { name: 'Adriespi', inks: '12.5k', works: 5, color: 'from-amber-400 to-orange-500' },
+              { name: 'InkMaster', inks: '10.2k', works: 3, color: 'from-slate-300 to-slate-500' },
+              { name: 'PioneerArt', inks: '8.9k', works: 8, color: 'from-orange-300 to-orange-700' },
+              { name: 'CreativeSoul', inks: '7.4k', works: 2, color: 'from-indigo-400 to-pi-purple' }
+            ].map((artist, i) => (
+              <motion.div
+                key={artist.name}
+                whileHover={{ scale: 1.05 }}
+                className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm flex flex-col items-center text-center group hover:shadow-xl transition-all"
+              >
+                <div className="relative mb-4 cursor-pointer" onClick={() => router.push(`/creator/${artist.name}`)}>
+                  <div className={`w-24 h-24 rounded-full bg-gradient-to-tr ${artist.color} p-1 shadow-lg group-hover:scale-105 transition-transform`}>
+                    <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
+                      <div className="w-full h-full bg-pi-purple/10 flex items-center justify-center text-pi-purple text-2xl font-black">
+                        {artist.name[0]}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="absolute -bottom-2 right-0 bg-white shadow-md w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-slate-50">
+                    #{i + 1}
+                  </div>
+                </div>
+                <h4
+                  onClick={() => router.push(`/creator/${artist.name}`)}
+                  className="font-extrabold text-slate-900 mb-1 group-hover:text-pi-purple cursor-pointer transition-colors"
+                >
+                  {artist.name}
+                </h4>
+                <div className="flex flex-col gap-1 text-[10px] uppercase font-black tracking-tighter">
+                  <span className="text-pi-purple flex items-center justify-center gap-1">
+                    <img src="/icon.png" className="w-3 h-3 object-contain" />
+                    {artist.inks} Inks recibidos
+                  </span>
+                  <span className="text-slate-400">{artist.works} Obras publicadas</span>
+                </div>
+                <button
+                  onClick={() => handleArtistSupport(artist)}
+                  disabled={supportingArtist !== null}
+                  className="mt-4 w-full py-2 bg-slate-50 rounded-full text-[10px] font-black text-slate-600 hover:bg-pi-purple hover:text-white transition-all uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  {supportingArtist === artist.name ? (
+                    <RefreshCw size={14} className="animate-spin" />
+                  ) : (
+                    <>
+                      <img src="/icon.png" className="w-3 h-3 object-contain" />
+                      Apoyar con 50 Inks
+                    </>
+                  )}
+                </button>
               </motion.div>
             ))}
           </div>
