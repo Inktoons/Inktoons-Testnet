@@ -79,7 +79,7 @@ export default function MangaDetailPage() {
         addBalance,
         updateReadingProgress
     } = useUserData();
-    const { getWebtoon } = useContent();
+    const { getWebtoon, deleteWebtoon } = useContent();
     const { trackAction } = useMissions();
 
     // Attempt to get from context first, then mock
@@ -382,6 +382,21 @@ export default function MangaDetailPage() {
                         <div className="absolute top-0 right-0 bg-pi-gold text-black text-[10px] font-black px-1.5 py-0.5 rounded-bl-lg">
                             HOT
                         </div>
+                        {/* Admin Delete Button for Adriespi */}
+                        {user?.username === 'adriespi' && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (confirm("ADMIN: ¿Estás seguro de que quieres eliminar este Inktoon permanentemente?")) {
+                                        deleteWebtoon(news.id);
+                                        router.push('/');
+                                    }
+                                }}
+                                className="absolute bottom-0 right-0 p-2 bg-red-600 text-white rounded-tl-lg hover:bg-red-700 transition-colors z-20"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        )}
                     </motion.div>
 
                     {/* Info */}
@@ -611,88 +626,19 @@ export default function MangaDetailPage() {
                                 </div>
                             </div>
 
-                            {/* Tips Section */}
-                            {authorData?.tipsEnabled && (
-                                <div className="mb-10 bg-gradient-to-br from-pi-gold/5 via-white to-amber-50 rounded-[40px] p-8 shadow-xl shadow-amber-200/20 border border-pi-gold/10 overflow-hidden relative group">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-pi-gold/10 rounded-full blur-3xl -mr-16 -mt-16" />
-
-                                    <div className="flex items-center justify-between mb-6 relative z-10">
-                                        <div>
-                                            <h3 className="text-lg font-black text-slate-900 mb-1 flex items-center gap-2">
-                                                <Heart size={20} fill="#f2b200" className="text-pi-gold" />
-                                                {t('creator_tips_title')}
-                                            </h3>
-                                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight">{t('creator_tips_sub')}</p>
-                                        </div>
-                                    </div>
-
-                                    {donationSuccess ? (
-                                        <div className="bg-white/80 backdrop-blur-md rounded-3xl p-8 text-center animate-in zoom-in-95 relative z-10 border border-green-100">
-                                            <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-200">
-                                                <CheckCircle2 size={32} />
-                                            </div>
-                                            <h4 className="text-xl font-black text-slate-900 mb-1">{t('creator_donate_success')}</h4>
-                                            <p className="text-sm text-slate-500 font-bold">¡Tu apoyo hace la diferencia!</p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4 relative z-10">
-                                            <div className="grid grid-cols-5 gap-2">
-                                                {[0.1, 0.5, 1, 5, 10].map(amount => (
-                                                    <button
-                                                        key={amount}
-                                                        onClick={() => handleDonation(amount.toString())}
-                                                        className="py-3 bg-white border-2 border-transparent hover:border-pi-gold rounded-2xl font-black text-slate-700 hover:text-pi-gold-dark shadow-sm hover:shadow-md active:scale-95 transition-all text-sm"
-                                                    >
-                                                        {amount}
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            <div className="pt-2">
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <div className="h-px bg-slate-100 flex-1" />
-                                                    <span className="text-[10px] font-black text-slate-300 uppercase">{t('creator_tips_custom')}</span>
-                                                    <div className="h-px bg-slate-100 flex-1" />
-                                                </div>
-
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <input
-                                                            type="number"
-                                                            value={donationAmount}
-                                                            onChange={(e) => setDonationAmount(e.target.value)}
-                                                            placeholder="0.00"
-                                                            className="w-full bg-white border-2 border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-black text-slate-900 outline-none focus:border-pi-gold focus:ring-0 shadow-sm transition-all"
-                                                        />
-                                                        <Coins className="absolute left-4 top-1/2 -translate-y-1/2 text-pi-gold" size={24} fill="currentColor" />
-                                                    </div>
-                                                    <button
-                                                        onClick={() => handleDonation("")}
-                                                        disabled={isSubmittingDonation || !donationAmount}
-                                                        className="px-8 bg-pi-gold text-white rounded-2xl font-black shadow-xl shadow-pi-gold/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-                                                    >
-                                                        {isSubmittingDonation ? <Loader2 className="animate-spin text-white" /> : <Send size={20} />}
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Info Tip Footer */}
-                                            <div className="mt-8 bg-slate-900 rounded-[30px] p-8 text-white text-center shadow-2xl relative overflow-hidden group">
-                                                <div className="absolute top-0 right-0 w-64 h-64 bg-pi-purple/20 rounded-full blur-3xl -mr-32 -mt-32" />
-                                                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                                                    <Info size={32} className="text-white/80" />
-                                                </div>
-                                                <h4 className="text-xl font-black mb-3">{t('creator_tips_info_title')}</h4>
-                                                <p className="text-slate-400 font-medium text-sm leading-relaxed px-2">
-                                                    {t('creator_tips_info_desc')}
-                                                    <br />
-                                                    <span className="text-pi-gold font-black uppercase inline-block mt-2">{t('creator_tips_no_commission')}</span>
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
+                            {/* Donation Section Removed by User Request */}
+                            <div className="mt-8 bg-slate-900 rounded-[30px] p-8 text-white text-center shadow-2xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 w-64 h-64 bg-pi-purple/20 rounded-full blur-3xl -mr-32 -mt-32" />
+                                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <Info size={32} className="text-white/80" />
                                 </div>
-                            )}
+                                <h4 className="text-xl font-black mb-3">{t('creator_tips_info_title')}</h4>
+                                <p className="text-slate-400 font-medium text-sm leading-relaxed px-2">
+                                    {t('creator_tips_info_desc')}
+                                    <br />
+                                    <span className="text-pi-gold font-black uppercase inline-block mt-2">{t('creator_tips_no_commission')}</span>
+                                </p>
+                            </div>
 
                             {/* Recommendations */}
                             <div>
@@ -719,372 +665,380 @@ export default function MangaDetailPage() {
                                     <div className="aspect-[3/4.5] rounded-lg bg-gray-100 animate-pulse" />
                                 </div>
                             </div>
-                        </motion.div>
+                        </motion.div >
                     )}
 
-                    {activeTab === "episodes" && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
-                            {/* Creator Add Chapter Button */}
-                            {(() => {
-                                if (loading) return null; // Don't render until auth state is known
-                                if (!user) return null; // Only show if a user is logged in
+                    {
+                        activeTab === "episodes" && (
+                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+                                {/* Creator Add Chapter Button */}
+                                {(() => {
+                                    if (loading) return null; // Don't render until auth state is known
+                                    if (!user) return null; // Only show if a user is logged in
 
-                                // 1. Check by username (case-insensitive)
-                                const isAuthorName = user.username?.toLowerCase() === news.author?.toLowerCase();
+                                    // 1. Check by username (case-insensitive)
+                                    const isAuthorName = user.username?.toLowerCase() === news.author?.toLowerCase();
 
-                                // 2. Check if the webtoon ID belongs to the current user's locally created content
-                                // This would require a way to track webtoons created by the current user,
-                                // e.g., a 'myWebtoons' list in usePi or checking local storage for created IDs.
-                                // For now, we rely on the author string.
-                                // A more robust check might involve:
-                                // const isLocalCreator = localStorage.getItem(`myWebtoon_${news.id}`) === user.username;
-                                // const isCreator = isAuthorName || isLocalCreator;
-                                const isCreator = isAuthorName;
+                                    // 2. Check if the webtoon ID belongs to the current user's locally created content
+                                    // This would require a way to track webtoons created by the current user,
+                                    // e.g., a 'myWebtoons' list in usePi or checking local storage for created IDs.
+                                    // For now, we rely on the author string.
+                                    // A more robust check might involve:
+                                    // const isLocalCreator = localStorage.getItem(`myWebtoon_${news.id}`) === user.username;
+                                    // const isCreator = isAuthorName || isLocalCreator;
+                                    const isCreator = isAuthorName;
 
-                                return isCreator && (
-                                    <button
-                                        onClick={() => router.push(`/upload?webtoonId=${news.id}`)}
-                                        className="w-full py-4 mb-4 border-2 border-dashed border-pi-purple/30 rounded-xl flex items-center justify-center gap-2 text-pi-purple font-black text-sm hover:bg-pi-purple/5 transition-all active:scale-[0.98]"
-                                    >
-                                        <PlusCircle size={20} />
-                                        {t('detail_add_chapter')}
-                                    </button>
-                                );
-                            })()}
-
-                            {news?.chapters && news.chapters.length > 0 ? (
-                                news.chapters.map((chapter: Chapter, index: number) => {
-                                    const isRead = isChapterRead(news.id, chapter.id);
-
-                                    return (
-                                        <div
-                                            key={chapter.id}
-                                            onClick={() => {
-                                                const isUnlockedByTime = chapter.unlockDate && new Date() > new Date(chapter.unlockDate);
-                                                const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
-                                                const effectiveIsLocked = chapter.isLocked && !isUnlockedByTime && !isVIP;
-
-                                                if (effectiveIsLocked) {
-                                                    setSelectedChapter(chapter);
-                                                    setShowUnlockModal(true);
-                                                } else {
-                                                    router.push(`/chapter/${id}/${chapter.id}`);
-                                                }
-                                            }}
-                                            className={`p-4 rounded-xl flex items-center justify-between border transition-all cursor-pointer group ${isRead
-                                                ? "bg-white border-pi-purple/20 shadow-sm"
-                                                : "bg-gray-50 border-gray-100 hover:border-pi-purple/30 shadow-none"
-                                                }`}
+                                    return isCreator && (
+                                        <button
+                                            onClick={() => router.push(`/upload?webtoonId=${news.id}`)}
+                                            className="w-full py-4 mb-4 border-2 border-dashed border-pi-purple/30 rounded-xl flex items-center justify-center gap-2 text-pi-purple font-black text-sm hover:bg-pi-purple/5 transition-all active:scale-[0.98]"
                                         >
-                                            <div className="flex items-center gap-4">
-                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-xs ${isRead ? "bg-pi-purple/10 text-pi-purple" : "bg-white border border-gray-200 text-gray-400"
-                                                    }`}>
-                                                    {(news.chapters?.length || 0) - index}
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <p className={`font-bold text-sm transition-colors ${isRead ? "text-pi-purple" : "text-gray-900 group-hover:text-pi-purple"
-                                                            }`}>
-                                                            {chapter.title}
-                                                        </p>
-                                                        {isRead && <CheckCircle2 size={14} className="text-pi-purple" />}
-                                                    </div>
-                                                    <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
-                                                        {chapter.date} {isRead && `• ${t('detail_chapter_read')}`}
-                                                    </p>
-                                                </div>
-                                            </div>
+                                            <PlusCircle size={20} />
+                                            {t('detail_add_chapter')}
+                                        </button>
+                                    );
+                                })()}
 
-                                            <div className="flex items-center gap-3">
-                                                {/* Edit Button for Author */}
-                                                {(user?.username?.toLowerCase() === news.author?.toLowerCase()) && (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            router.push(`/upload?webtoonId=${news.id}&chapterId=${chapter.id}`);
-                                                        }}
-                                                        className="p-2 text-gray-400 hover:text-pi-purple hover:bg-pi-purple/10 rounded-lg transition-all"
-                                                        title="Editar capítulo"
-                                                    >
-                                                        <Edit3 size={16} />
-                                                    </button>
-                                                )}
+                                {news?.chapters && news.chapters.length > 0 ? (
+                                    news.chapters.map((chapter: Chapter, index: number) => {
+                                        const isRead = isChapterRead(news.id, chapter.id);
 
-                                                {(() => {
+                                        return (
+                                            <div
+                                                key={chapter.id}
+                                                onClick={() => {
                                                     const isUnlockedByTime = chapter.unlockDate && new Date() > new Date(chapter.unlockDate);
                                                     const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
                                                     const effectiveIsLocked = chapter.isLocked && !isUnlockedByTime && !isVIP;
 
                                                     if (effectiveIsLocked) {
-                                                        const daysRemaining = Math.max(0, Math.ceil((new Date(chapter.unlockDate!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
-
-                                                        return (
-                                                            <div className="flex flex-col items-end">
-                                                                <div className="flex items-center gap-1.5 bg-pi-gold/10 text-pi-gold-dark px-2 py-1 rounded-md">
-                                                                    <Coins size={12} fill="currentColor" />
-                                                                    <span className="text-[10px] font-black">{chapter.unlockCost || 60} INKS</span>
-                                                                </div>
-                                                                <div className="flex items-center gap-1 text-[9px] text-gray-400 mt-1">
-                                                                    <Lock size={10} />
-                                                                    <span>{t('detail_chapter_free_in')} {daysRemaining} {daysRemaining === 1 ? t('detail_chapter_day') : t('detail_chapter_days')}</span>
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    } else if (isVIP) {
-                                                        return (
-                                                            <div className="flex items-center gap-1.5 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black border border-amber-200 uppercase tracking-tighter">
-                                                                <Crown size={12} fill="currentColor" />
-                                                                VIP PASS
-                                                            </div>
-                                                        );
-                                                    } else if (chapter.isLocked && isUnlockedByTime) {
-                                                        return (
-                                                            <div className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-black">
-                                                                FREE
-                                                            </div>
-                                                        );
+                                                        setSelectedChapter(chapter);
+                                                        setShowUnlockModal(true);
                                                     } else {
-                                                        return (
-                                                            <div className={`p-2 transition-colors ${isRead ? "text-pi-purple" : "text-gray-300"}`}>
-                                                                <ArrowLeft className="rotate-180" size={18} />
-                                                            </div>
-                                                        );
+                                                        router.push(`/chapter/${id}/${chapter.id}`);
                                                     }
-                                                })()}
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            ) : (
-                                <div className="text-center py-20 text-gray-400">
-                                    <ImageIcon className="mx-auto mb-4 opacity-20" size={48} />
-                                    <p className="text-sm font-bold">{t('detail_no_chapters')}</p>
-                                    <p className="text-xs">{t('detail_be_first')}</p>
-                                </div>
-                            )}
-                        </motion.div>
-                    )}
-
-                    {activeTab === "comments" && (
-                        <div className="relative min-h-[300px]">
-                            {/* Comments List */}
-                            <div className="flex flex-col gap-6">
-                                {comments.map((comment) => (
-                                    <div key={comment.id} className="flex gap-4">
-                                        {/* Avatar */}
-                                        <div
-                                            onClick={() => router.push(`/creator/${comment.username}`)}
-                                            className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-                                        >
-                                            <div className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden">
-                                                {/* If avatar is length 1, treat as initial, else image */}
-                                                {comment.avatar.length === 1 ? (
-                                                    <span className="font-bold text-gray-600">{comment.avatar}</span>
-                                                ) : (
-                                                    <Image src={comment.avatar} alt={comment.username} width={40} height={40} className="object-cover" />
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Content */}
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <div
-                                                    onClick={() => router.push(`/creator/${comment.username}`)}
-                                                    className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-                                                >
-                                                    <span className="font-bold text-sm text-gray-900">{comment.username}</span>
+                                                }}
+                                                className={`p-4 rounded-xl flex items-center justify-between border transition-all cursor-pointer group ${isRead
+                                                    ? "bg-white border-pi-purple/20 shadow-sm"
+                                                    : "bg-gray-50 border-gray-100 hover:border-pi-purple/30 shadow-none"
+                                                    }`}
+                                            >
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-black text-xs ${isRead ? "bg-pi-purple/10 text-pi-purple" : "bg-white border border-gray-200 text-gray-400"
+                                                        }`}>
+                                                        {(news.chapters?.length || 0) - index}
+                                                    </div>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <p className={`font-bold text-sm transition-colors ${isRead ? "text-pi-purple" : "text-gray-900 group-hover:text-pi-purple"
+                                                                }`}>
+                                                                {chapter.title}
+                                                            </p>
+                                                            {isRead && <CheckCircle2 size={14} className="text-pi-purple" />}
+                                                        </div>
+                                                        <p className="text-[10px] text-gray-400 uppercase font-black tracking-widest">
+                                                            {chapter.date} {isRead && `• ${t('detail_chapter_read')}`}
+                                                        </p>
+                                                    </div>
                                                 </div>
-                                                <span className="text-xs text-gray-400 font-medium">{comment.timestamp}</span>
-                                            </div>
 
-                                            <p className="text-sm text-gray-800 leading-relaxed mb-2 whitespace-pre-wrap">{comment.content}</p>
+                                                <div className="flex items-center gap-3">
+                                                    {/* Edit Button for Author */}
+                                                    {(user?.username?.toLowerCase() === news.author?.toLowerCase()) && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                router.push(`/upload?webtoonId=${news.id}&chapterId=${chapter.id}`);
+                                                            }}
+                                                            className="p-2 text-gray-400 hover:text-pi-purple hover:bg-pi-purple/10 rounded-lg transition-all"
+                                                            title="Editar capítulo"
+                                                        >
+                                                            <Edit3 size={16} />
+                                                        </button>
+                                                    )}
 
-                                            {comment.image && (
-                                                <div className="relative w-48 h-48 rounded-lg overflow-hidden mb-4 border border-gray-100">
-                                                    <Image
-                                                        src={comment.image}
-                                                        alt="Comment attachment"
-                                                        fill
-                                                        className="object-cover"
-                                                    />
+                                                    {(() => {
+                                                        const isUnlockedByTime = chapter.unlockDate && new Date() > new Date(chapter.unlockDate);
+                                                        const isVIP = userData.subscription && Date.now() < userData.subscription.expiresAt;
+                                                        const effectiveIsLocked = chapter.isLocked && !isUnlockedByTime && !isVIP;
+
+                                                        if (effectiveIsLocked) {
+                                                            const daysRemaining = Math.max(0, Math.ceil((new Date(chapter.unlockDate!).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)));
+
+                                                            return (
+                                                                <div className="flex flex-col items-end">
+                                                                    <div className="flex items-center gap-1.5 bg-pi-gold/10 text-pi-gold-dark px-2 py-1 rounded-md">
+                                                                        <Coins size={12} fill="currentColor" />
+                                                                        <span className="text-[10px] font-black">{chapter.unlockCost || 60} INKS</span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-1 text-[9px] text-gray-400 mt-1">
+                                                                        <Lock size={10} />
+                                                                        <span>{t('detail_chapter_free_in')} {daysRemaining} {daysRemaining === 1 ? t('detail_chapter_day') : t('detail_chapter_days')}</span>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        } else if (isVIP) {
+                                                            return (
+                                                                <div className="flex items-center gap-1.5 bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-[10px] font-black border border-amber-200 uppercase tracking-tighter">
+                                                                    <Crown size={12} fill="currentColor" />
+                                                                    VIP PASS
+                                                                </div>
+                                                            );
+                                                        } else if (chapter.isLocked && isUnlockedByTime) {
+                                                            return (
+                                                                <div className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-black">
+                                                                    FREE
+                                                                </div>
+                                                            );
+                                                        } else {
+                                                            return (
+                                                                <div className={`p-2 transition-colors ${isRead ? "text-pi-purple" : "text-gray-300"}`}>
+                                                                    <ArrowLeft className="rotate-180" size={18} />
+                                                                </div>
+                                                            );
+                                                        }
+                                                    })()}
                                                 </div>
-                                            )}
-
-                                            <div className="flex items-center gap-6 text-gray-400 mt-2">
-                                                <button className="flex items-center gap-1.5 hover:text-pi-purple transition-colors text-xs font-bold">
-                                                    <ThumbsUp size={14} />
-                                                    <span>{comment.likes}</span>
-                                                </button>
-                                                <button className="flex items-center gap-1.5 hover:text-pi-purple transition-colors text-xs font-bold">
-                                                    <MessageCircle size={14} />
-                                                    <span>{comment.replies}</span>
-                                                </button>
-
-                                                {/* Delete Button for Owner */}
-                                                {user && user.username === comment.username && (
-                                                    <button
-                                                        onClick={() => handleDeleteComment(comment.id)}
-                                                        className="ml-auto flex items-center gap-1 hover:text-red-500 transition-colors text-xs"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                )}
-
-                                                {/* Report Button for Others */}
-                                                {(!user || user.username !== comment.username) && (
-                                                    <button className="ml-auto hover:text-red-500 transition-colors">
-                                                        <AlertCircle size={14} />
-                                                    </button>
-                                                )}
                                             </div>
-                                        </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="text-center py-20 text-gray-400">
+                                        <ImageIcon className="mx-auto mb-4 opacity-20" size={48} />
+                                        <p className="text-sm font-bold">{t('detail_no_chapters')}</p>
+                                        <p className="text-xs">{t('detail_be_first')}</p>
                                     </div>
-                                ))}
-                            </div>
+                                )}
+                            </motion.div>
+                        )
+                    }
 
-                            {/* FAB - Write Comment Button */}
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => user ? setShowCommentInput(true) : authenticate()}
-                                className="fixed bottom-24 right-6 w-14 h-14 bg-[#FF6B6B] text-white rounded-full shadow-lg shadow-red-200 flex items-center justify-center z-40"
-                            >
-                                <PenTool size={24} />
-                            </motion.button>
-                        </div>
-                    )}
-                </div>
+                    {
+                        activeTab === "comments" && (
+                            <div className="relative min-h-[300px]">
+                                {/* Comments List */}
+                                <div className="flex flex-col gap-6">
+                                    {comments.map((comment) => (
+                                        <div key={comment.id} className="flex gap-4">
+                                            {/* Avatar */}
+                                            <div
+                                                onClick={() => router.push(`/creator/${comment.username}`)}
+                                                className="flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center overflow-hidden">
+                                                    {/* If avatar is length 1, treat as initial, else image */}
+                                                    {comment.avatar.length === 1 ? (
+                                                        <span className="font-bold text-gray-600">{comment.avatar}</span>
+                                                    ) : (
+                                                        <Image src={comment.avatar} alt={comment.username} width={40} height={40} className="object-cover" />
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Content */}
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between mb-1">
+                                                    <div
+                                                        onClick={() => router.push(`/creator/${comment.username}`)}
+                                                        className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+                                                    >
+                                                        <span className="font-bold text-sm text-gray-900">{comment.username}</span>
+                                                    </div>
+                                                    <span className="text-xs text-gray-400 font-medium">{comment.timestamp}</span>
+                                                </div>
+
+                                                <p className="text-sm text-gray-800 leading-relaxed mb-2 whitespace-pre-wrap">{comment.content}</p>
+
+                                                {comment.image && (
+                                                    <div className="relative w-48 h-48 rounded-lg overflow-hidden mb-4 border border-gray-100">
+                                                        <Image
+                                                            src={comment.image}
+                                                            alt="Comment attachment"
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                <div className="flex items-center gap-6 text-gray-400 mt-2">
+                                                    <button className="flex items-center gap-1.5 hover:text-pi-purple transition-colors text-xs font-bold">
+                                                        <ThumbsUp size={14} />
+                                                        <span>{comment.likes}</span>
+                                                    </button>
+                                                    <button className="flex items-center gap-1.5 hover:text-pi-purple transition-colors text-xs font-bold">
+                                                        <MessageCircle size={14} />
+                                                        <span>{comment.replies}</span>
+                                                    </button>
+
+                                                    {/* Delete Button for Owner */}
+                                                    {user && user.username === comment.username && (
+                                                        <button
+                                                            onClick={() => handleDeleteComment(comment.id)}
+                                                            className="ml-auto flex items-center gap-1 hover:text-red-500 transition-colors text-xs"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </button>
+                                                    )}
+
+                                                    {/* Report Button for Others */}
+                                                    {(!user || user.username !== comment.username) && (
+                                                        <button className="ml-auto hover:text-red-500 transition-colors">
+                                                            <AlertCircle size={14} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* FAB - Write Comment Button */}
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={() => user ? setShowCommentInput(true) : authenticate()}
+                                    className="fixed bottom-24 right-6 w-14 h-14 bg-[#FF6B6B] text-white rounded-full shadow-lg shadow-red-200 flex items-center justify-center z-40"
+                                >
+                                    <PenTool size={24} />
+                                </motion.button>
+                            </div>
+                        )
+                    }
+                </div >
 
                 {/* Comment Input Drawer/Modal */}
                 <AnimatePresence>
-                    {showCommentInput && (
-                        <>
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="fixed inset-0 bg-black/50 z-[60]"
-                                onClick={() => setShowCommentInput(false)}
-                            />
-                            <motion.div
-                                initial={{ y: "100%" }}
-                                animate={{ y: 0 }}
-                                exit={{ y: "100%" }}
-                                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                                className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 z-[70] shadow-2xl"
-                            >
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="font-bold text-lg">{t('detail_comment_write')}</h3>
-                                    <button onClick={() => setShowCommentInput(false)} className="p-2 text-gray-400 hover:text-black">
-                                        <X size={24} />
-                                    </button>
-                                </div>
-
-                                <textarea
-                                    value={newCommentText}
-                                    onChange={(e) => setNewCommentText(e.target.value)}
-                                    placeholder={t('detail_comment_placeholder')}
-                                    className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm outline-none focus:border-pi-purple focus:ring-1 focus:ring-pi-purple min-h-[120px] resize-none mb-4"
+                    {
+                        showCommentInput && (
+                            <>
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 bg-black/50 z-[60]"
+                                    onClick={() => setShowCommentInput(false)}
                                 />
-
-
-
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        {/* Image upload disabled by user request */}
+                                <motion.div
+                                    initial={{ y: "100%" }}
+                                    animate={{ y: 0 }}
+                                    exit={{ y: "100%" }}
+                                    transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                                    className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 z-[70] shadow-2xl"
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h3 className="font-bold text-lg">{t('detail_comment_write')}</h3>
+                                        <button onClick={() => setShowCommentInput(false)} className="p-2 text-gray-400 hover:text-black">
+                                            <X size={24} />
+                                        </button>
                                     </div>
-                                    <button
-                                        onClick={handleSubmitComment}
-                                        disabled={!newCommentText.trim()}
-                                        className="bg-[#FF6B6B] text-white px-6 py-3 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-500 transition-colors"
-                                    >
-                                        <Send size={18} />
-                                        PUBLICAR
-                                    </button>
-                                </div>
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>
+
+                                    <textarea
+                                        value={newCommentText}
+                                        onChange={(e) => setNewCommentText(e.target.value)}
+                                        placeholder={t('detail_comment_placeholder')}
+                                        className="w-full bg-gray-50 border border-gray-100 rounded-xl p-4 text-sm outline-none focus:border-pi-purple focus:ring-1 focus:ring-pi-purple min-h-[120px] resize-none mb-4"
+                                    />
+
+
+
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            {/* Image upload disabled by user request */}
+                                        </div>
+                                        <button
+                                            onClick={handleSubmitComment}
+                                            disabled={!newCommentText.trim()}
+                                            className="bg-[#FF6B6B] text-white px-6 py-3 rounded-full font-bold text-sm flex items-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-red-500 transition-colors"
+                                        >
+                                            <Send size={18} />
+                                            PUBLICAR
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            </>
+                        )
+                    }
+                </AnimatePresence >
 
                 {/* Unlock Chapter Modal */}
                 <AnimatePresence>
-                    {showUnlockModal && selectedChapter && (
-                        <>
-                            <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
-                                onClick={() => setShowUnlockModal(false)}
-                            />
-                            <motion.div
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
-                                className="fixed inset-0 m-auto w-[90%] max-w-sm h-fit bg-white rounded-3xl p-8 z-[110] shadow-2xl text-center"
-                            >
-                                <div className="w-20 h-20 bg-pi-purple/10 rounded-full flex items-center justify-center mx-auto mb-6 text-pi-purple">
-                                    <Lock size={40} />
-                                </div>
-                                <h3 className="text-2xl font-black mb-2">Capítulo Bloqueado</h3>
-                                <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-                                    Este capítulo es exclusivo de **Early Access**. Desbloquéalo ahora con Inks o espera al estreno gratuito.
-                                </p>
-
-                                <div className="space-y-4">
-                                    <button
-                                        onClick={() => {
-                                            if (!user) {
-                                                authenticate();
-                                                return;
-                                            }
-
-                                            const cost = selectedChapter.unlockCost || 60; // 60 Inks is roughly 0.06 Pi/chapter
-
-                                            if (userData.balance >= cost) {
-                                                // Deduct inks and unlock
-                                                addBalance(-cost);
-                                                updateReadingProgress(id as string, selectedChapter.id);
-                                                alert(`¡Capítulo desbloqueado! Se han descontado ${cost} Inks de tu saldo.`);
-                                                setShowUnlockModal(false);
-                                            } else {
-                                                if (confirm(`No tienes suficientes Inks (necesitas ${cost}). ¿Quieres ir a la Wallet a comprar más?`)) {
-                                                    router.push('/wallet');
-                                                }
-                                            }
-                                        }}
-                                        className="w-full py-4 bg-pi-purple text-white rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg shadow-pi-purple/20 hover:scale-[1.02] active:scale-95 transition-all"
-                                    >
-                                        <Coins size={20} fill="currentColor" />
-                                        DESBLOQUEAR CON {selectedChapter.unlockCost || 60} INKS
-                                    </button>
-                                    <button
-                                        onClick={() => setShowUnlockModal(false)}
-                                        className="w-full py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors"
-                                    >
-                                        ESPERAR AL ESTRENO
-                                    </button>
-                                </div>
-
-                                <div className="mt-8 pt-6 border-t border-gray-100">
-                                    <div className="flex items-center justify-center gap-2 text-pi-gold-dark font-black text-xs">
-                                        <Calendar size={14} />
-                                        <span>ESTRENO GRATIS: {new Date(selectedChapter.unlockDate || Date.now()).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>
+                    {
+                        showUnlockModal && selectedChapter && (
+                            <>
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+                                    onClick={() => setShowUnlockModal(false)}
+                                />
+                                <motion.div
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0.9, opacity: 0 }}
+                                    className="fixed inset-0 m-auto w-[90%] max-w-sm h-fit bg-white rounded-3xl p-8 z-[110] shadow-2xl text-center"
+                                >
+                                    <div className="w-20 h-20 bg-pi-purple/10 rounded-full flex items-center justify-center mx-auto mb-6 text-pi-purple">
+                                        <Lock size={40} />
                                     </div>
-                                </div>
-                            </motion.div>
-                        </>
-                    )}
-                </AnimatePresence>
+                                    <h3 className="text-2xl font-black mb-2">Capítulo Bloqueado</h3>
+                                    <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+                                        Este capítulo es exclusivo de **Early Access**. Desbloquéalo ahora con Inks o espera al estreno gratuito.
+                                    </p>
+
+                                    <div className="space-y-4">
+                                        <button
+                                            onClick={() => {
+                                                if (!user) {
+                                                    authenticate();
+                                                    return;
+                                                }
+
+                                                const cost = selectedChapter.unlockCost || 60; // 60 Inks is roughly 0.06 Pi/chapter
+
+                                                if (userData.balance >= cost) {
+                                                    // Deduct inks and unlock
+                                                    addBalance(-cost);
+                                                    updateReadingProgress(id as string, selectedChapter.id);
+                                                    alert(`¡Capítulo desbloqueado! Se han descontado ${cost} Inks de tu saldo.`);
+                                                    setShowUnlockModal(false);
+                                                } else {
+                                                    if (confirm(`No tienes suficientes Inks (necesitas ${cost}). ¿Quieres ir a la Wallet a comprar más?`)) {
+                                                        router.push('/wallet');
+                                                    }
+                                                }
+                                            }}
+                                            className="w-full py-4 bg-pi-purple text-white rounded-2xl font-black flex items-center justify-center gap-3 shadow-lg shadow-pi-purple/20 hover:scale-[1.02] active:scale-95 transition-all"
+                                        >
+                                            <Coins size={20} fill="currentColor" />
+                                            DESBLOQUEAR CON {selectedChapter.unlockCost || 60} INKS
+                                        </button>
+                                        <button
+                                            onClick={() => setShowUnlockModal(false)}
+                                            className="w-full py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors"
+                                        >
+                                            ESPERAR AL ESTRENO
+                                        </button>
+                                    </div>
+
+                                    <div className="mt-8 pt-6 border-t border-gray-100">
+                                        <div className="flex items-center justify-center gap-2 text-pi-gold-dark font-black text-xs">
+                                            <Calendar size={14} />
+                                            <span>ESTRENO GRATIS: {new Date(selectedChapter.unlockDate || Date.now()).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' })}</span>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </>
+                        )
+                    }
+                </AnimatePresence >
 
                 <BottomNavbar />
-            </main>
+            </main >
 
 
             {/* Safe Area Spacer */}
-            <div className="h-10" />
-        </div>
+            < div className="h-10" />
+        </div >
     );
 }

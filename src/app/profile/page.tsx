@@ -32,13 +32,16 @@ import {
     RefreshCcw,
     XCircle,
     Languages,
-    TrendingUp
+    TrendingUp,
+    Check,
+    Loader2
 } from "lucide-react";
 import { useContent } from "@/context/ContentContext";
 import { useMissions } from "@/context/MissionContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { Language } from "@/data/translations";
 import TopNavbar from "@/components/TopNavbar";
+import { SupabaseService } from "@/lib/supabaseService";
 
 type ViewMode = 'main' | 'favorites' | 'following' | 'history' | 'creator_panel';
 
@@ -55,6 +58,9 @@ export default function ProfilePage() {
     const [isMyContentExpanded, setIsMyContentExpanded] = useState(false);
     const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
     const [currentPiValue, setCurrentPiValue] = useState<number | null>(null);
+    const [isSavingWallet, setIsSavingWallet] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+    const [isWithdrawing, setIsWithdrawing] = useState(false);
 
     // Fetch Pi price from official API (via proxy to avoid CORS)
     React.useEffect(() => {
@@ -153,6 +159,20 @@ export default function ProfilePage() {
             case 'history': return t('profile_view_history');
             case 'creator_panel': return t('profile_creator_panel');
             default: return t('profile_title');
+        }
+    };
+
+    const handleSaveWallet = async () => {
+        if (!user?.uid || !userData.walletAddress) return;
+        setIsSavingWallet(true);
+        try {
+            await SupabaseService.saveUserData(user.uid, { walletAddress: userData.walletAddress });
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 2000);
+        } catch (error) {
+            console.error("Error saving wallet:", error);
+        } finally {
+            setIsSavingWallet(false);
         }
     };
 
@@ -532,7 +552,7 @@ export default function ProfilePage() {
                                                 <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t('profile_wallet_desc')}</span>
                                             </div>
                                         </div>
-                                        <div className="mt-auto space-y-2">
+                                        <div className="mt-auto space-y-3 pt-2">
                                             <div className="relative">
                                                 <input
                                                     type="text"
@@ -541,9 +561,30 @@ export default function ProfilePage() {
                                                     value={userData.walletAddress || ""}
                                                     onChange={(e) => updateWalletAddress(e.target.value)}
                                                 />
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-pi-purple"><Save size={14} /></div>
                                             </div>
-                                            <p className="text-[9px] text-slate-400 font-bold px-1 italic">{t('profile_wallet_autosave')}</p>
+
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1">
+                                                    {saveSuccess && (
+                                                        <span className="text-[10px] font-black text-green-500 flex items-center gap-1 animate-pulse">
+                                                            <Check size={12} /> ¡Guardado exitosamente!
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <button
+                                                    onClick={handleSaveWallet}
+                                                    disabled={isSavingWallet || !userData.walletAddress}
+                                                    className="bg-slate-900 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-md hover:bg-pi-purple hover:shadow-pi-purple/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                >
+                                                    {isSavingWallet ? (
+                                                        <RefreshCcw size={12} className="animate-spin" />
+                                                    ) : (
+                                                        <Save size={12} />
+                                                    )}
+                                                    Guardar
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -674,10 +715,35 @@ export default function ProfilePage() {
                                                 </div>
 
                                                 <button
-                                                    disabled={!currentPiValue || ((userData.creatorBalance || 0) * (currentPiValue || 0)) < 10 || !userData.walletAddress}
-                                                    className="w-full py-4 bg-pi-purple text-white rounded-xl font-black text-sm shadow-lg shadow-pi-purple/20 hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50 uppercase tracking-widest"
+                                                    onClick={async () => {
+                                                        if (!username) return;
+                                                        if (!confirm(t('creator_confirm_withdraw'))) return;
+
+                                                        setIsWithdrawing(true);
+                                                        try {
+                                                            const result = await SupabaseService.processWithdrawal(username);
+                                                            if (result.success) {
+                                                                // Refresh user data to show 0 balance and new transaction
+                                                                if (user?.uid) {
+                                                                    // Ideally we refresh context, but for now we force a reload or rely on simple alert
+                                                                    alert(`¡Retiro exitoso! Se han enviado ${result.amount.toFixed(4)} Pi a tu billetera.`);
+                                                                    window.location.reload();
+                                                                }
+                                                            } else {
+                                                                alert("Error procesando el retiro. Inténtalo de nuevo.");
+                                                            }
+                                                        } catch (error) {
+                                                            console.error(error);
+                                                            alert("Error desconocido.");
+                                                        } finally {
+                                                            setIsWithdrawing(false);
+                                                        }
+                                                    }}
+                                                    disabled={isWithdrawing || !currentPiValue || ((userData.creatorBalance || 0) * (currentPiValue || 0)) < 10 || !userData.walletAddress}
+                                                    className="w-full py-4 bg-pi-purple text-white rounded-xl font-black text-sm shadow-lg shadow-pi-purple/20 hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50 uppercase tracking-widest flex items-center justify-center gap-2"
                                                 >
-                                                    {t('creator_exchange_btn')}
+                                                    {isWithdrawing ? <Loader2 className="animate-spin" /> : <RefreshCcw size={18} />}
+                                                    {isWithdrawing ? "PROCESANDO..." : t('creator_exchange_btn')}
                                                 </button>
 
                                                 {!userData.walletAddress && (

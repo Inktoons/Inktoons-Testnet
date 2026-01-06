@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
     ArrowLeft, Heart, BookOpen, Star, MessageCircle,
     ChevronRight, Loader2, Coins, Edit3, Send, CheckCircle2,
-    X, Info, ShieldCheck, Wallet, Save
+    X, Info, ShieldCheck, Wallet, Save, Image as ImageIcon,
+    Lock
 } from "lucide-react";
 import { useContent } from "@/context/ContentContext";
 import { useLanguage } from "@/context/LanguageContext";
@@ -14,16 +15,18 @@ import { usePi } from "@/components/PiNetworkProvider";
 import { useUserData } from "@/context/UserDataContext";
 import { SupabaseService } from "@/lib/supabaseService";
 import TopNavbar from "@/components/TopNavbar";
+import { Trash2 } from "lucide-react";
+import BottomNavbar from "@/components/BottomNavbar";
 
 export default function CreatorProfilePage() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
     const username = params.username as string;
-    const { webtoons } = useContent();
+    const { webtoons, deleteWebtoon } = useContent();
     const { t } = useLanguage();
     const { createPayment, user: currentUser } = usePi();
-    const { userData: myUserData, updateCreatorBio, updateWalletAddress } = useUserData();
+    const { userData: myUserData, updateCreatorBio, updateWalletAddress, updateProfileBanner } = useUserData();
 
     const [creatorData, setCreatorData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -35,6 +38,8 @@ export default function CreatorProfilePage() {
     const [isEditing, setIsEditing] = useState(false);
     const [editedBio, setEditedBio] = useState("");
     const [editedWalletAddress, setEditedWalletAddress] = useState("");
+    const [editedBanner, setEditedBanner] = useState<string | null>(null);
+    const [isSelectingBanner, setIsSelectingBanner] = useState(false);
 
     const isMyProfile = currentUser?.username === username;
 
@@ -54,31 +59,51 @@ export default function CreatorProfilePage() {
                     username: username,
                     creatorDescription: myUserData.creatorDescription,
                     walletAddress: myUserData.walletAddress,
+                    profileBanner: myUserData.profileBanner,
                     id: currentUser?.uid
                 });
                 setEditedBio(myUserData.creatorDescription || "");
                 setEditedWalletAddress(myUserData.walletAddress || "");
+                setEditedBanner(myUserData.profileBanner || null);
             } else if (data) {
                 setCreatorData(data);
             } else {
                 setCreatorData({
                     username: username,
                     creatorDescription: "",
-                    walletAddress: ""
+                    walletAddress: "",
+                    profileBanner: ""
                 });
             }
             setLoading(false);
         };
         if (username) fetchCreator();
-    }, [username, isMyProfile, myUserData.creatorDescription, myUserData.walletAddress, currentUser]);
+    }, [username, isMyProfile, myUserData.creatorDescription, myUserData.walletAddress, myUserData.profileBanner, currentUser]);
 
     const creatorWorks = webtoons.filter(w => w.author === username);
-    const creatorBanner = creatorWorks.find(w => w.bannerUrl)?.bannerUrl;
+    const availableBanners = creatorWorks.filter(w => w.bannerUrl).map(w => w.bannerUrl!);
+
+    // Determine which banner to show
+    const currentBanner = isMyProfile
+        ? editedBanner
+        : (creatorData?.profileBanner);
 
     const handleSaveProfile = async () => {
         if (!isMyProfile) return;
         await updateCreatorBio(editedBio);
         await updateWalletAddress(editedWalletAddress);
+        if (editedBanner !== null) {
+            await updateProfileBanner(editedBanner);
+        }
+
+        // Update local state immediately to reflect changes
+        setCreatorData((prev: any) => ({
+            ...prev,
+            creatorDescription: editedBio,
+            walletAddress: editedWalletAddress,
+            profileBanner: editedBanner ?? prev?.profileBanner
+        }));
+
         setIsEditing(false);
     };
 
@@ -128,21 +153,23 @@ export default function CreatorProfilePage() {
 
             <div className="max-w-4xl mx-auto pt-20 pb-32">
                 {/* Header Section with Integrated Banner Background */}
-                <div className="relative mb-12 overflow-hidden shadow-2xl bg-slate-200">
+                <div className="relative mb-12 overflow-hidden shadow-2xl bg-slate-200 min-h-[400px]">
                     {/* Background Banner - Full Height of this section */}
                     <div className="absolute inset-0 z-0">
-                        {creatorBanner ? (
+                        {currentBanner ? (
                             <div className="w-full h-full relative">
-                                <img src={creatorBanner} className="w-full h-full object-cover" alt="Banner" />
-                                <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/5 to-white/0" />
+                                <img src={currentBanner} className="w-full h-full object-cover" alt="Banner" />
+                                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/5 to-white/0" />
                             </div>
                         ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-pi-purple to-pi-purple-dark">
-                                <div className="absolute inset-0 opacity-20">
-                                    <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-white blur-3xl animate-pulse" />
-                                    <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-pi-gold blur-3xl animate-pulse" />
+                            <div className="w-full h-full bg-white flex items-center justify-center">
+                                <div className="absolute inset-0 opacity-40">
+                                    <div className="absolute top-10 left-10 w-32 h-32 rounded-full bg-slate-100 blur-3xl animate-pulse" />
+                                    <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-slate-100 blur-3xl animate-pulse" />
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-white/0" />
+                                {/* Optional: Add a very subtle pattern or logo watermark if desired, but white for now */}
+                                <ImageIcon size={64} className="text-slate-100" />
                             </div>
                         )}
                     </div>
@@ -163,8 +190,8 @@ export default function CreatorProfilePage() {
                         <div className="relative group mb-6">
                             <div className="w-32 h-32 rounded-full bg-white p-1.5 shadow-2xl relative">
                                 <div className="w-full h-full rounded-full bg-gradient-to-br from-pi-purple to-pi-purple-dark flex items-center justify-center text-white text-5xl font-black overflow-hidden shadow-inner border-4 border-white">
-                                    {(isMyProfile && myUserData.profileImage) ? (
-                                        <img src={myUserData.profileImage} className="w-full h-full object-cover" alt="Avatar" />
+                                    {(isMyProfile ? myUserData.profileImage : creatorData?.profileImage) ? (
+                                        <img src={isMyProfile ? myUserData.profileImage : creatorData?.profileImage} className="w-full h-full object-cover" alt="Avatar" />
                                     ) : (
                                         username.charAt(0).toUpperCase()
                                     )}
@@ -184,11 +211,21 @@ export default function CreatorProfilePage() {
                         {/* User Info */}
                         <div className="text-center">
                             <h1 className="text-3xl font-black text-slate-900 mb-1 drop-shadow-sm">{username}</h1>
-                            <div className="flex items-center justify-center gap-2 mb-8">
+                            <div className="flex flex-col items-center gap-2 mb-8">
                                 <span className="px-4 py-1.5 bg-pi-gold/10 text-pi-gold-dark text-[10px] font-black rounded-full uppercase tracking-widest border border-pi-gold/20 shadow-sm flex items-center gap-1.5 backdrop-blur-sm">
                                     <ShieldCheck size={12} fill="currentColor" />
                                     {t('profile_pioneer_desc')}
                                 </span>
+
+                                {isMyProfile && isEditing && (
+                                    <button
+                                        onClick={() => setIsSelectingBanner(true)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-white/40 backdrop-blur-md border border-white/20 rounded-full text-[10px] font-black text-slate-700 hover:bg-white transition-all uppercase tracking-widest mt-2 shadow-sm"
+                                    >
+                                        <ImageIcon size={14} />
+                                        {t('creator_change_banner')}
+                                    </button>
+                                )}
                             </div>
 
                             {/* Stats */}
@@ -208,6 +245,64 @@ export default function CreatorProfilePage() {
                     </div>
                 </div>
 
+                {/* Banner Selection Overlay */}
+                <AnimatePresence>
+                    {isSelectingBanner && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6"
+                        >
+                            <motion.div
+                                initial={{ scale: 0.9, y: 20 }}
+                                animate={{ scale: 1, y: 0 }}
+                                className="bg-white rounded-[40px] w-full max-w-2xl overflow-hidden shadow-2xl"
+                            >
+                                <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                                    <h3 className="font-black text-xl text-slate-900">{t('creator_select_banner')}</h3>
+                                    <button
+                                        onClick={() => setIsSelectingBanner(false)}
+                                        className="p-2 hover:bg-slate-100 rounded-full transition-all"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
+
+                                <div className="p-8 max-h-[60vh] overflow-y-auto">
+                                    {availableBanners.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {availableBanners.map((url, idx) => (
+                                                <div
+                                                    key={idx}
+                                                    onClick={() => {
+                                                        setEditedBanner(url);
+                                                        setIsSelectingBanner(false);
+                                                    }}
+                                                    className={`relative aspect-video rounded-3xl overflow-hidden cursor-pointer group border-4 transition-all ${editedBanner === url ? 'border-pi-purple' : 'border-transparent'}`}
+                                                >
+                                                    <img src={url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                                    {editedBanner === url && (
+                                                        <div className="absolute inset-0 bg-pi-purple/20 flex items-center justify-center">
+                                                            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-pi-purple shadow-lg">
+                                                                <CheckCircle2 size={24} />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-slate-400 font-bold italic">{t('creator_profile_empty_works')}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 <div className="px-6">
                     {/* Content Section */}
                     <div className="space-y-8 text-left max-w-2xl mx-auto">
@@ -224,6 +319,7 @@ export default function CreatorProfilePage() {
                                             onClick={() => {
                                                 setIsEditing(false);
                                                 setEditedBio(myUserData.creatorDescription || "");
+                                                setEditedBanner(myUserData.profileBanner || null);
                                             }}
                                             className="p-1 px-3 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-black uppercase"
                                         >
@@ -266,7 +362,7 @@ export default function CreatorProfilePage() {
                                         key={work.id}
                                         whileHover={{ y: -5 }}
                                         onClick={() => router.push(`/news/${work.id}`)}
-                                        className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex gap-4 cursor-pointer hover:shadow-md transition-all group"
+                                        className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex gap-4 cursor-pointer hover:shadow-md transition-all group relative"
                                     >
                                         <div className="w-20 h-28 rounded-2xl overflow-hidden flex-shrink-0 shadow-sm border border-slate-50">
                                             <img src={work.imageUrl} alt={work.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
@@ -279,6 +375,21 @@ export default function CreatorProfilePage() {
                                                 <span className="flex items-center gap-1"><BookOpen size={10} /> {work.chapters?.length || 0} {t('profile_caps')}</span>
                                             </div>
                                         </div>
+
+                                        {/* Admin Delete Button for Adriespi */}
+                                        {currentUser?.username === 'adriespi' && (
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm("ADMIN: ¿Estás seguro de que quieres eliminar este Inktoon permanentemente?")) {
+                                                        deleteWebtoon(work.id);
+                                                    }
+                                                }}
+                                                className="absolute top-2 right-2 p-2 bg-red-100 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-colors z-10"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
                                     </motion.div>
                                 ))}
                             </div>
@@ -295,76 +406,145 @@ export default function CreatorProfilePage() {
                             <div className="space-y-6">
                                 <h3 className="text-[12px] font-black text-pi-purple uppercase tracking-[0.2em] flex items-center gap-2 ml-4">
                                     <div className="w-1.5 h-1.5 rounded-full bg-pi-purple" />
-                                    {t('creator_tips_title')}
+                                    {t('creator_tips_title_pi')}
                                 </h3>
 
                                 <div className="bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-pi-purple/5 rounded-bl-full -mr-16 -mt-16" />
 
-                                    {/* Wallet Configuration (Edit Mode) */}
-                                    {isMyProfile && isEditing && (
-                                        <div className="mb-8 p-6 bg-pi-purple/5 rounded-3xl border border-pi-purple/10">
-                                            <label className="text-[10px] font-black text-pi-purple uppercase tracking-[0.1em] block mb-3 ml-1">
-                                                {t('profile_wallet')}
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={editedWalletAddress}
-                                                onChange={(e) => setEditedWalletAddress(e.target.value)}
-                                                placeholder={t('profile_wallet_placeholder')}
-                                                className="w-full bg-white border-2 border-slate-100 rounded-2xl px-4 py-3 text-xs font-bold text-slate-700 outline-none focus:border-pi-purple transition-all font-mono"
-                                            />
-                                            <p className="text-[10px] text-slate-400 font-bold mt-3 px-1">
+                                    {/* Wallet Configuration / Toggle (Edit Mode) */}
+                                    {isMyProfile && isEditing ? (
+                                        <div className="mb-0 bg-pi-purple/5 border border-pi-purple/10 rounded-3xl p-6">
+                                            {/* Toggle Header */}
+                                            <div className="flex items-center justify-between mb-6">
+                                                <div>
+                                                    <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">
+                                                        {t('creator_tips_title_pi')}
+                                                    </h4>
+                                                    <p className="text-[10px] bg-indigo-100 text-indigo-600 font-bold px-2 py-0.5 rounded inline-block mt-1">DIRECTO</p>
+                                                    <p className="text-[10px] text-slate-400 font-bold mt-2 max-w-[220px] leading-relaxed">
+                                                        Habilita este botón para recibir apoyo directo de tus lectores sin comisiones de Inktoons.
+                                                    </p>
+                                                </div>
+
+                                                {/* Custom Toggle Switch */}
+                                                <button
+                                                    onClick={() => {
+                                                        if (!editedWalletAddress) {
+                                                            alert("Debes configurar tu billetera Pi para activar las propinas. Ingresa tu dirección abajo.");
+                                                            return;
+                                                        }
+                                                        // Toggle logic would go here if we had a dedicated enabled state
+                                                        // For now the presence of wallet implies enabled, but user asked for a specific toggle UI
+                                                    }}
+                                                    className={`w-14 h-8 rounded-full flex items-center transition-colors duration-300 px-1 ${editedWalletAddress ? 'bg-pi-purple' : 'bg-slate-200'}`}
+                                                >
+                                                    <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${editedWalletAddress ? 'translate-x-6' : 'translate-x-0'}`}>
+                                                        {!editedWalletAddress && <Lock size={12} className="text-slate-300" />}
+                                                    </div>
+                                                </button>
+                                            </div>
+
+                                            {/* Wallet Input */}
+                                            <div className="relative">
+                                                <input
+                                                    type="text"
+                                                    value={editedWalletAddress}
+                                                    onChange={(e) => setEditedWalletAddress(e.target.value)}
+                                                    placeholder={t('profile_wallet_placeholder')}
+                                                    className="w-full bg-white border-2 border-slate-100 rounded-2xl px-4 py-3 text-sm font-black text-slate-700 outline-none focus:border-pi-purple transition-all font-mono shadow-sm pl-10"
+                                                />
+                                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-pi-purple/30">
+                                                    <Wallet size={16} />
+                                                </div>
+                                            </div>
+                                            <p className="text-[10px] text-slate-400 font-bold mt-3 px-1 text-center">
                                                 * {t('profile_wallet_autosave')}
                                             </p>
                                         </div>
+                                    ) : (
+                                        creatorData?.walletAddress && (
+                                            <div className="mb-8 bg-slate-50/50 rounded-3xl border border-slate-100/50 p-6 flex flex-col items-center">
+                                                <div className="w-full mb-4 flex items-center justify-between">
+                                                    <div>
+                                                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                                                            PROPINA DIRECTA
+                                                        </span>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                                            <span className="text-xs font-bold text-green-600 uppercase">Habilitado</span>
+                                                        </div>
+                                                    </div>
+                                                    <div className="bg-white px-3 py-1 rounded-lg border border-slate-100 shadow-sm">
+                                                        <span className="text-[10px] font-mono font-bold text-slate-500">
+                                                            {creatorData.walletAddress.substring(0, 6)}...{creatorData.walletAddress.substring(creatorData.walletAddress.length - 4)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )
                                     )}
 
-                                    <div className="text-center mb-8">
-                                        <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-2">{t('creator_tips_sub')}</p>
-                                    </div>
-
-                                    {donationSuccess ? (
-                                        <div className="text-center py-6 animate-in zoom-in-95">
-                                            <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
-                                                <CheckCircle2 size={32} />
-                                            </div>
-                                            <h4 className="text-xl font-black text-slate-900">{t('creator_donate_success')}</h4>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-6">
-                                            <div className="grid grid-cols-4 gap-3">
-                                                {["1", "5", "10", "20"].map((amount) => (
-                                                    <button
-                                                        key={amount}
-                                                        onClick={() => handleDonation(amount)}
-                                                        className="p-3 rounded-2xl border-2 border-slate-100 text-slate-600 font-black text-sm hover:border-pi-purple hover:text-pi-purple hover:bg-pi-purple/5 transition-all active:scale-95"
-                                                    >
-                                                        {amount} Pi
-                                                    </button>
-                                                ))}
+                                    {/* Donation UI - ONLY if wallet configured and NOT editing */}
+                                    {!isEditing && creatorData?.walletAddress ? (
+                                        <>
+                                            <div className="text-center mb-8">
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{t('creator_tips_sub')}</p>
                                             </div>
 
-                                            <div className="flex gap-3">
-                                                <div className="relative flex-1">
-                                                    <input
-                                                        type="number"
-                                                        value={donationAmount}
-                                                        onChange={(e) => setDonationAmount(e.target.value)}
-                                                        placeholder="0.00"
-                                                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-4 py-4 text-xl font-black text-slate-900 outline-none focus:border-pi-purple transition-all"
-                                                    />
-                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-pi-purple">Pi</span>
+                                            {donationSuccess ? (
+                                                <div className="text-center py-6 animate-in zoom-in-95">
+                                                    <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                                                        <CheckCircle2 size={32} />
+                                                    </div>
+                                                    <h4 className="text-xl font-black text-slate-900">{t('creator_donate_success')}</h4>
                                                 </div>
-                                                <button
-                                                    onClick={() => handleDonation("")}
-                                                    disabled={isSubmittingDonation || !donationAmount}
-                                                    className="px-8 bg-slate-900 text-white rounded-2xl font-black shadow-lg hover:bg-pi-purple transition-all active:scale-95 disabled:opacity-30"
-                                                >
-                                                    {isSubmittingDonation ? <Loader2 className="animate-spin" /> : <Send size={24} />}
-                                                </button>
+                                            ) : (
+                                                <div className="space-y-6">
+                                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                        {["1", "5", "10", "20"].map((amount) => (
+                                                            <button
+                                                                key={amount}
+                                                                onClick={() => handleDonation(amount)}
+                                                                className="p-4 rounded-2xl border-2 border-slate-100 bg-white text-slate-700 font-black text-base hover:border-pi-purple hover:text-pi-purple hover:bg-pi-purple/5 transition-all active:scale-95 shadow-sm"
+                                                            >
+                                                                {amount} Pi
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="flex gap-3">
+                                                        <div className="relative flex-1">
+                                                            <input
+                                                                type="number"
+                                                                value={donationAmount}
+                                                                onChange={(e) => setDonationAmount(e.target.value)}
+                                                                placeholder="0.00"
+                                                                className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-5 py-4 text-2xl font-black text-slate-900 outline-none focus:border-pi-purple transition-all shadow-inner"
+                                                            />
+                                                            <span className="absolute right-5 top-1/2 -translate-y-1/2 font-black text-pi-purple text-lg">Pi</span>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => handleDonation("")}
+                                                            disabled={isSubmittingDonation || !donationAmount}
+                                                            className="px-8 bg-slate-900 text-white rounded-2xl font-black shadow-lg hover:bg-pi-purple transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center min-w-[80px]"
+                                                        >
+                                                            {isSubmittingDonation ? <Loader2 className="animate-spin" /> : <Send size={28} />}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        /* Message if no wallet configured and NOT editing */
+                                        !isEditing && !creatorData?.walletAddress && isMyProfile && (
+                                            <div className="text-center py-10">
+                                                <div className="w-20 h-20 bg-slate-100 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-6">
+                                                    <Wallet size={40} />
+                                                </div>
+                                                <p className="text-slate-400 font-bold max-w-[200px] mx-auto text-sm italic">{t('creator_setup_wallet')}</p>
                                             </div>
-                                        </div>
+                                        )
                                     )}
 
                                     {/* Info Section */}
@@ -383,6 +563,7 @@ export default function CreatorProfilePage() {
                     </div>
                 </div>
             </div>
+            <BottomNavbar />
         </div>
     );
 }

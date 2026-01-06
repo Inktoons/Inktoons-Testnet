@@ -48,6 +48,7 @@ interface UserData {
     creatorTransactions?: CreatorTransaction[];
     tipsEnabled?: boolean;
     creatorDescription?: string;
+    profileBanner?: string;
     username?: string;
 }
 
@@ -87,7 +88,9 @@ interface UserDataContextType {
     cancelSubscription: () => void;
     addCreatorTransaction: (tx: Omit<CreatorTransaction, 'id' | 'date' | 'status'>) => void;
     updateCreatorBio: (bio: string) => void;
+    updateProfileBanner: (bannerUrl: string) => void;
     toggleTips: (enabled: boolean) => void;
+    supportArtistWithInks: (artistUsername: string) => Promise<boolean>;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -207,9 +210,11 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
-    const setProfileImage = useCallback((image: string) => {
+    const setProfileImage = useCallback(async (image: string) => {
+        if (!user) return;
         setUserData(prev => ({ ...prev, profileImage: image }));
-    }, []);
+        await SupabaseService.saveUserData(user.uid, { profileImage: image });
+    }, [user]);
 
     const addBalance = useCallback((amount: number) => {
         setUserData(prev => ({ ...prev, balance: (prev.balance || 0) + amount }));
@@ -320,6 +325,35 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         setUserData(prev => ({ ...prev, tipsEnabled: enabled }));
     }, []);
 
+    const supportArtistWithInks = useCallback(async (artistUsername: string) => {
+        if (!user || userData.balance < 50) return false;
+
+        // Deduct from current user
+        setUserData(prev => ({ ...prev, balance: prev.balance - 50 }));
+
+        // Add transaction record
+        const newTx: CreatorTransaction = {
+            id: Math.random().toString(36).substr(2, 9),
+            origin: user.username || "Pionero",
+            work: `Apoyo a ${artistUsername}`,
+            type: 'DONATION',
+            amount: 50,
+            status: 'COMPLETED',
+            date: Date.now()
+        };
+
+        // Update the artist's balance in Supabase
+        await SupabaseService.incrementArtistInks(artistUsername, 50);
+
+        return true;
+    }, [user, userData.balance]);
+
+    const updateProfileBanner = useCallback(async (bannerUrl: string) => {
+        if (!user) return;
+        setUserData(prev => ({ ...prev, profileBanner: bannerUrl }));
+        await SupabaseService.saveUserData(user.uid, { profileBanner: bannerUrl });
+    }, [user]);
+
     const isFavorite = useCallback((id: string) => userData.favorites.includes(id), [userData.favorites]);
     const isInHistory = useCallback((id: string) => userData.history.includes(id), [userData.history]);
     const isFollowingAuthor = useCallback((authorName: string) => userData.following.includes(authorName), [userData.following]);
@@ -331,7 +365,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         <UserDataContext.Provider value={{
             userData, loading, toast, clearToast, toggleFavorite, addToHistory, toggleFollowAuthor, rateWebtoon, setProfileImage, addBalance, setSubscription, isFavorite, isInHistory, isFollowingAuthor, getUserRating, getLastReadChapter, isChapterRead, updateReadingProgress,
             addNotification, markNotificationRead, clearNotifications, toggleCensorship, updateWalletAddress, toggleLikeChapter, isChapterLiked, cancelSubscription, addCreatorTransaction,
-            updateCreatorBio, toggleTips
+            updateCreatorBio, updateProfileBanner, supportArtistWithInks, toggleTips
         }}>
             {children}
         </UserDataContext.Provider>

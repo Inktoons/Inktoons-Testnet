@@ -140,14 +140,13 @@ function UploadPageContent() {
     const [chapterPages, setChapterPages] = useState<{ id: string, url: string, file?: File }[]>([]);
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const [statusMessage, setStatusMessage] = useState("");
-    const { toggleTips, updateCreatorBio } = useUserData();
+    const { toggleTips } = useUserData();
     const [localTipsEnabled, setLocalTipsEnabled] = useState(userData.tipsEnabled || false);
-    const [localBio, setLocalBio] = useState(userData.creatorDescription || "");
+    const [tipAmount, setTipAmount] = useState<number>(1);
 
     useEffect(() => {
         setLocalTipsEnabled(userData.tipsEnabled || false);
-        setLocalBio(userData.creatorDescription || "");
-    }, [userData.tipsEnabled, userData.creatorDescription]);
+    }, [userData.tipsEnabled]);
 
     const movePage = (index: number, direction: 'up' | 'down') => {
         const newPages = [...chapterPages];
@@ -208,10 +207,6 @@ function UploadPageContent() {
         if (promptConfig.field === "year") setYear(val);
         if (promptConfig.field === "chapterTitle") setChapterTitle(val);
         if (promptConfig.field === "description") setDescription(val);
-        if (promptConfig.field === "creatorBio") {
-            setLocalBio(val);
-            updateCreatorBio(val);
-        }
         setPromptConfig({ ...promptConfig, isOpen: false });
     };
 
@@ -364,7 +359,9 @@ function UploadPageContent() {
                 // EDITING EXISTING CHAPTER
                 await updateChapter(selectedWebtoonId, chapterIdFromQuery, {
                     title: chapterTitle,
-                    images: finalImages
+                    images: finalImages,
+                    tipAmount: localTipsEnabled ? tipAmount : undefined,
+                    isTipsEnabled: localTipsEnabled
                 });
             } else {
                 // NEW CHAPTER logic with sequential days
@@ -383,11 +380,14 @@ function UploadPageContent() {
 
                 const newChapter: Chapter = {
                     id: Math.random().toString(36).substr(2, 9),
-                    title: chapterTitle, date: "Hoy",
+                    title: chapterTitle,
+                    date: "Hoy",
                     isLocked: isMonetized,
                     unlockCost: isMonetized ? 60 : undefined,
                     unlockDate: unlockDate,
-                    images: finalImages
+                    images: finalImages,
+                    tipAmount: localTipsEnabled ? tipAmount : undefined,
+                    isTipsEnabled: localTipsEnabled
                 };
                 await addChapter(selectedWebtoonId, newChapter);
             }
@@ -399,7 +399,8 @@ function UploadPageContent() {
             setTimeout(() => router.push(`/news/${selectedWebtoonId}`), 2000);
         } catch (error: any) {
             console.error("Error submitting chapter:", error);
-            alert(language === 'es' ? "No se pudo subir el capítulo. Inténtalo de nuevo en unos momentos." : "Could not upload chapter. Try again in a few moments.");
+            const errorMessage = error?.message || (language === 'es' ? "No se pudo subir el capítulo. Inténtalo de nuevo en unos momentos." : "Could not upload chapter. Try again in a few moments.");
+            alert(errorMessage);
             setIsSubmitting(false);
         }
     };
@@ -827,14 +828,26 @@ function UploadPageContent() {
                                     <div className="flex items-center gap-2">
                                         <h3 className="font-black text-sm text-gray-800">{t('upload_creator_tips_title')}</h3>
                                         <div className="px-1.5 py-0.5 bg-pi-purple/10 text-pi-purple text-[8px] font-black rounded uppercase">{t('upload_direct_tag')}</div>
+                                        {userData.walletAddress && (
+                                            <div className="px-1.5 py-0.5 bg-green-500/10 text-green-600 text-[8px] font-black rounded uppercase flex items-center gap-1">
+                                                <Check size={8} /> Conectado
+                                            </div>
+                                        )}
                                     </div>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{t('upload_creator_tips_desc')}</p>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-relaxed">
+                                        {userData.walletAddress
+                                            ? "Habilita este botón para recibir apoyo directo de tus lectores de Inktoons. Las donaciones se reflejarán en tu Panel de Creador."
+                                            : "Necesitas conectar tu billetera en el perfil."}
+                                    </p>
                                 </div>
                                 <button
                                     onClick={() => {
+                                        if (!userData.walletAddress) {
+                                            alert(language === 'es' ? "Debes configurar tu Billetera Pi en el Perfil para activar las propinas." : "You must configure your Pi Wallet in Profile to enable tips.");
+                                            return;
+                                        }
                                         const newVal = !localTipsEnabled;
                                         setLocalTipsEnabled(newVal);
-                                        toggleTips(newVal);
                                     }}
                                     className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 shadow-inner ${localTipsEnabled ? 'bg-pi-purple' : 'bg-gray-200'}`}
                                 >
@@ -848,29 +861,6 @@ function UploadPageContent() {
                                 </button>
                             </div>
 
-                            <AnimatePresence>
-                                {localTipsEnabled && (
-                                    <motion.div
-                                        initial={{ opacity: 0, height: 0 }}
-                                        animate={{ opacity: 1, height: "auto" }}
-                                        exit={{ opacity: 0, height: 0 }}
-                                        className="space-y-4 overflow-hidden"
-                                    >
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase ml-1">{t('upload_creator_description_label')}</label>
-                                            <div
-                                                onClick={() => openPrompt(t('upload_creator_description_label'), "creatorBio", localBio)}
-                                                className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl flex justify-between items-start cursor-pointer hover:bg-gray-100 transition-colors min-h-[100px]"
-                                            >
-                                                <span className={localBio ? "text-sm text-black font-medium leading-relaxed" : "text-sm text-gray-400"}>
-                                                    {localBio || t('upload_creator_description_placeholder')}
-                                                </span>
-                                                <Edit3 size={16} className="text-pi-purple/40 flex-shrink-0 mt-1" />
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
                         </div>
 
                         <button

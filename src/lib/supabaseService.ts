@@ -14,6 +14,8 @@ export interface Chapter {
     unlockCost?: number;
     unlockDate?: string;
     images?: string[];
+    tipAmount?: number;
+    isTipsEnabled?: boolean;
 }
 
 export interface Webtoon {
@@ -84,7 +86,9 @@ export class SupabaseService {
                         isLocked: c.is_locked,
                         unlockCost: c.unlock_cost || undefined,
                         unlockDate: c.unlock_date || undefined,
-                        images: c.images || []
+                        images: c.images || [],
+                        tipAmount: c.tip_amount || undefined,
+                        isTipsEnabled: c.is_tips_enabled || false
                     }))
             }));
 
@@ -135,7 +139,9 @@ export class SupabaseService {
                     is_locked: c.isLocked,
                     unlock_cost: c.unlockCost || null,
                     unlock_date: c.unlockDate || null,
-                    images: c.images || []
+                    images: c.images || [],
+                    tip_amount: c.tipAmount || null,
+                    is_tips_enabled: c.isTipsEnabled || false
                 }));
 
                 const { error: chaptersError } = await supabase
@@ -200,7 +206,9 @@ export class SupabaseService {
                     is_locked: chapter.isLocked,
                     unlock_cost: chapter.unlockCost || null,
                     unlock_date: chapter.unlockDate || null,
-                    images: chapter.images || []
+                    images: chapter.images || [],
+                    tip_amount: chapter.tipAmount || null,
+                    is_tips_enabled: chapter.isTipsEnabled || false
                 });
 
             if (error) throw error;
@@ -223,6 +231,8 @@ export class SupabaseService {
             if (updatedData.unlockCost !== undefined) updatePayload.unlock_cost = updatedData.unlockCost;
             if (updatedData.unlockDate !== undefined) updatePayload.unlock_date = updatedData.unlockDate;
             if (updatedData.images !== undefined) updatePayload.images = updatedData.images;
+            if (updatedData.tipAmount !== undefined) updatePayload.tip_amount = updatedData.tipAmount;
+            if (updatedData.isTipsEnabled !== undefined) updatePayload.is_tips_enabled = updatedData.isTipsEnabled;
 
             const { error } = await supabase
                 .from('chapters')
@@ -319,6 +329,7 @@ export class SupabaseService {
                 creatorTransactions: data.creator_transactions || [],
                 tipsEnabled: data.tips_enabled || false,
                 creatorDescription: data.creator_description || "",
+                profileBanner: data.profile_banner || undefined,
                 username: data.username || "" // Added username
             };
         } catch (error) {
@@ -346,6 +357,8 @@ export class SupabaseService {
                 creatorDescription: data.creator_description || "",
                 tipsEnabled: data.tips_enabled || false,
                 walletAddress: data.wallet_address || "",
+                profileImage: data.profile_image || undefined,
+                profileBanner: data.profile_banner || undefined,
                 username: data.username || ""
             };
         } catch (error) {
@@ -386,6 +399,7 @@ export class SupabaseService {
             if (data.creatorTransactions !== undefined) upsertData.creator_transactions = data.creatorTransactions;
             if (data.tipsEnabled !== undefined) upsertData.tips_enabled = data.tipsEnabled;
             if (data.creatorDescription !== undefined) upsertData.creator_description = data.creatorDescription;
+            if (data.profileBanner !== undefined) upsertData.profile_banner = data.profileBanner;
             if (data.username !== undefined) upsertData.username = data.username; // Save username too!
 
             const { error } = await supabase
@@ -395,6 +409,172 @@ export class SupabaseService {
             if (error) throw error;
         } catch (error) {
             console.error('Error saving user data to Supabase:', error);
+        }
+    }
+
+    /**
+     * Get top artists sorted by received inks (or most active)
+     */
+    static async getTopArtists(limit: number = 4): Promise<any[]> {
+        if (!supabase) return [];
+        try {
+            const { data, error } = await supabase
+                .from('user_data')
+                .select('*')
+                .not('username', 'is', null)
+                .order('creator_inks_balance', { ascending: false })
+                .limit(limit);
+
+            if (error) throw error;
+            return data.map((artist: any) => ({
+                name: artist.username,
+                inks: artist.creator_inks_balance || 0,
+                works: 0,
+                profileImage: artist.profile_image,
+                color: 'from-pi-purple to-indigo-600'
+            }));
+        } catch (error) {
+            console.error('Error fetching top artists:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Increment an artist's creator_inks_balance by username
+     */
+    static async incrementArtistInks(username: string, amount: number): Promise<boolean> {
+        if (!supabase) return false;
+        try {
+            // First get current balance
+            const { data, error: fetchError } = await supabase
+                .from('user_data')
+                .select('creator_inks_balance')
+                .eq('username', username)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            const newBalance = (data.creator_inks_balance || 0) + amount;
+
+            const { error: updateError } = await supabase
+                .from('user_data')
+                .update({ creator_inks_balance: newBalance })
+                .eq('username', username);
+
+            if (updateError) throw updateError;
+            return true;
+        } catch (error) {
+            console.error('Error incrementing artist inks:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Increment an artist's creator_balance (Pi) by username
+     */
+    static async incrementArtistPi(username: string, amount: number): Promise<boolean> {
+        if (!supabase) return false;
+        try {
+            // First get current balance
+            const { data, error: fetchError } = await supabase
+                .from('user_data')
+                .select('creator_balance')
+                .eq('username', username)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            const newBalance = (data.creator_balance || 0) + amount;
+
+            const { error: updateError } = await supabase
+                .from('user_data')
+                .update({ creator_balance: newBalance })
+                .eq('username', username);
+
+            if (updateError) throw updateError;
+            return true;
+        } catch (error) {
+            console.error('Error incrementing artist Pi:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Add a new transaction to creator's transaction history
+     */
+    static async addCreatorTransaction(
+        creatorUsername: string,
+        transaction: {
+            type: 'DONATION' | 'PAYMENT' | 'WITHDRAWAL';
+            origin: string; // donor username or source
+            work: string; // chapter/webtoon title
+            amount: number;
+            webtoonId?: string;
+            chapterId?: string;
+        }
+    ): Promise<boolean> {
+        if (!supabase) return false;
+        try {
+            // Get current transactions
+            const { data, error: fetchError } = await supabase
+                .from('user_data')
+                .select('creator_transactions')
+                .eq('username', creatorUsername)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            const currentTransactions = data.creator_transactions || [];
+
+            // Create new transaction entry
+            const newTransaction = {
+                id: Math.random().toString(36).substr(2, 9),
+                type: transaction.type,
+                origin: transaction.origin,
+                work: transaction.work,
+                amount: transaction.amount,
+                date: new Date().toISOString(),
+                webtoonId: transaction.webtoonId,
+                chapterId: transaction.chapterId
+            };
+
+            // Append to transactions array
+            const updatedTransactions = [newTransaction, ...currentTransactions];
+
+            const { error: updateError } = await supabase
+                .from('user_data')
+                .update({ creator_transactions: updatedTransactions })
+                .eq('username', creatorUsername);
+
+            if (updateError) throw updateError;
+            return true;
+        } catch (error) {
+            console.error('Error adding creator transaction:', error);
+            return false;
+        }
+    }
+    /**
+     * Process a full withdrawal for a creator via API (Server-side Pi Transaction)
+     */
+    static async processWithdrawal(username: string): Promise<{ success: boolean; amount: number }> {
+        try {
+            const response = await fetch('/api/pi/withdraw', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error("Withdrawal API Error:", data.error);
+                return { success: false, amount: 0 };
+            }
+
+            return { success: true, amount: data.amount };
+        } catch (error) {
+            console.error('Error processing withdrawal:', error);
+            return { success: false, amount: 0 };
         }
     }
 }

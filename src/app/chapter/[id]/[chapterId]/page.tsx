@@ -93,10 +93,32 @@ export default function ChapterReaderPage() {
                 t('creator_donate_memo').replace('{username}', webtoon?.author || ""),
                 {
                     type: "DIRECT_DONATION",
-                    recipient_uid: authorData?.id,
-                    recipient_username: webtoon?.author || ""
+                    webtoon_id: id,
+                    chapter_id: chapterId,
+                    recipient_username: webtoon?.author || "",
+                    // Note: No recipient_uid means it goes to main App Wallet, which is what we want.
                 },
-                () => {
+                async () => {
+                    // Update internal ledger and add transaction record
+                    if (webtoon?.author) {
+                        try {
+                            // Increment Pi balance
+                            await SupabaseService.incrementArtistPi(webtoon.author, Number(finalAmount));
+
+                            // Add transaction to history
+                            await SupabaseService.addCreatorTransaction(webtoon.author, {
+                                type: 'DONATION',
+                                origin: user?.username || 'Usuario Anónimo',
+                                work: `${webtoon.title} - ${chapter?.title || 'Capítulo'}`,
+                                amount: Number(finalAmount),
+                                webtoonId: id,
+                                chapterId: chapterId
+                            });
+                        } catch (err) {
+                            console.error("Error updating creator balance:", err);
+                        }
+                    }
+
                     setDonationSuccess(true);
                     setTimeout(() => {
                         setDonationSuccess(false);
@@ -330,82 +352,59 @@ export default function ChapterReaderPage() {
                             </div>
                         )}
 
-                        {/* Tips Section */}
-                        {authorData?.tipsEnabled && (
+                        {/* Chapter Specific Tips Section */}
+                        {(chapter.isTipsEnabled && authorData?.walletAddress) && (
                             <div className="px-6 py-12 border-t border-white/5 bg-gradient-to-b from-black/40 to-black/60">
-                                <div className="max-w-md mx-auto bg-gradient-to-br from-pi-gold/10 via-neutral-900 to-amber-900/10 rounded-[40px] p-8 shadow-2xl border border-pi-gold/10 relative overflow-hidden group">
-                                    <div className="absolute top-0 right-0 w-32 h-32 bg-pi-gold/5 rounded-full blur-3xl -mr-16 -mt-16" />
+                                <div className="max-w-md mx-auto bg-gradient-to-br from-neutral-900 to-neutral-950 rounded-[30px] p-8 shadow-2xl border border-white/5 relative overflow-hidden text-center">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-pi-purple/10 rounded-full blur-3xl -mr-16 -mt-16" />
 
-                                    <div className="text-center mb-8 relative z-10">
-                                        <div className="w-16 h-16 bg-pi-gold/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-pi-gold/20 shadow-inner">
-                                            <Heart size={32} fill="#f2b200" className="text-pi-gold" />
-                                        </div>
-                                        <h3 className="text-2xl font-black text-white mb-2">{t('creator_tips_title')}</h3>
-                                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{t('creator_tips_sub')}</p>
-                                    </div>
+                                    <h3 className="text-xl font-black text-white mb-2 uppercase italic">
+                                        APOYAR CON PROPINAS
+                                    </h3>
+                                    <p className="text-[11px] font-bold text-gray-500 mb-8 max-w-[200px] mx-auto leading-relaxed">
+                                        Apoya al creador de este capítulo con una donación directa.
+                                    </p>
 
                                     {donationSuccess ? (
-                                        <div className="bg-white/5 backdrop-blur-md rounded-3xl p-8 text-center animate-in zoom-in-95 relative z-10 border border-green-500/20">
-                                            <div className="w-16 h-16 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg shadow-green-500/20">
-                                                <CheckCircle2 size={32} />
+                                        <div className="bg-green-500/10 border border-green-500/20 rounded-2xl p-6 animate-in zoom-in-95">
+                                            <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-green-500/20">
+                                                <CheckCircle2 size={24} />
                                             </div>
-                                            <h4 className="text-xl font-black text-white mb-1">{t('creator_donate_success')}</h4>
-                                            <p className="text-sm text-gray-400 font-bold">¡Tu apoyo hace la diferencia!</p>
+                                            <h4 className="text-lg font-black text-green-400 mb-1">{t('creator_donate_success')}</h4>
                                         </div>
                                     ) : (
-                                        <div className="space-y-6 relative z-10">
-                                            <div className="grid grid-cols-5 gap-2">
-                                                {[0.1, 0.5, 1, 5, 10].map(amount => (
+                                        <div className="relative z-10 space-y-4">
+                                            <div className="grid grid-cols-4 gap-2">
+                                                {["1", "5", "10", "20"].map((amt) => (
                                                     <button
-                                                        key={amount}
-                                                        onClick={() => handleDonation(amount.toString())}
-                                                        className="py-3 bg-white/5 border border-white/10 hover:border-pi-gold rounded-2xl font-black text-gray-300 hover:text-white shadow-sm active:scale-95 transition-all text-sm backdrop-blur-sm"
+                                                        key={amt}
+                                                        onClick={() => setDonationAmount(amt)}
+                                                        className={`py-3 rounded-xl font-black text-sm border transition-all ${donationAmount === amt ? "bg-pi-purple text-white border-pi-purple shadow-lg shadow-pi-purple/20" : "bg-white/5 text-gray-400 border-white/10 hover:bg-white/10 hover:text-white"}`}
                                                     >
-                                                        {amount}
+                                                        {amt} Pi
                                                     </button>
                                                 ))}
                                             </div>
 
-                                            <div className="pt-2">
-                                                <div className="flex items-center gap-3 mb-4">
-                                                    <div className="h-px bg-white/5 flex-1" />
-                                                    <span className="text-[10px] font-black text-gray-600 uppercase tracking-tighter">{t('creator_tips_custom')}</span>
-                                                    <div className="h-px bg-white/5 flex-1" />
+                                            <div className="flex gap-2">
+                                                <div className="relative flex-1">
+                                                    <input
+                                                        type="text"
+                                                        value={donationAmount}
+                                                        onChange={(e) => setDonationAmount(e.target.value)}
+                                                        placeholder="0.00"
+                                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-lg font-black text-white outline-none focus:border-pi-purple transition-all placeholder:text-gray-600"
+                                                        inputMode="decimal"
+                                                    />
+                                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 font-black text-pi-purple text-sm">Pi</span>
                                                 </div>
-
-                                                <div className="flex gap-2">
-                                                    <div className="relative flex-1">
-                                                        <input
-                                                            type="number"
-                                                            value={donationAmount}
-                                                            onChange={(e) => setDonationAmount(e.target.value)}
-                                                            placeholder="0.00"
-                                                            className="w-full bg-black/50 border border-white/10 rounded-2xl py-4 pl-12 pr-4 font-black text-white outline-none focus:border-pi-gold focus:ring-0 transition-all text-lg"
-                                                        />
-                                                        <Coins className="absolute left-4 top-1/2 -translate-y-1/2 text-pi-gold" size={24} fill="currentColor" />
-                                                    </div>
-                                                    <button
-                                                        onClick={() => handleDonation("")}
-                                                        disabled={isSubmittingDonation || !donationAmount}
-                                                        className="px-8 bg-pi-gold text-white rounded-2xl font-black shadow-xl shadow-pi-gold/20 flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
-                                                    >
-                                                        {isSubmittingDonation ? <Loader2 className="animate-spin text-white" /> : <Send size={20} />}
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Info Tip Footer */}
-                                            <div className="mt-8 bg-neutral-950/80 rounded-[30px] p-6 text-white text-center shadow-2xl relative overflow-hidden group border border-white/5">
-                                                <div className="absolute top-0 right-0 w-48 h-48 bg-pi-purple/10 rounded-full blur-3xl -mr-24 -mt-24" />
-                                                <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/10">
-                                                    <Info size={24} className="text-gray-400" />
-                                                </div>
-                                                <h4 className="text-sm font-black mb-2">{t('creator_tips_info_title')}</h4>
-                                                <p className="text-gray-500 font-medium text-[10px] leading-relaxed">
-                                                    {t('creator_tips_info_desc')}
-                                                    <br />
-                                                    <span className="text-pi-gold font-black uppercase inline-block mt-1">{t('creator_tips_no_commission')}</span>
-                                                </p>
+                                                <button
+                                                    onClick={() => handleDonation(donationAmount)}
+                                                    disabled={isSubmittingDonation || !donationAmount}
+                                                    className="aspect-square h-full bg-white/10 text-white rounded-2xl flex items-center justify-center hover:bg-pi-purple hover:text-white transition-all disabled:opacity-50"
+                                                >
+                                                    {isSubmittingDonation ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
+                                                </button>
                                             </div>
                                         </div>
                                     )}

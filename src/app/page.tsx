@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -13,35 +13,42 @@ import BottomNavbar from "@/components/BottomNavbar";
 import { useLanguage } from "@/context/LanguageContext";
 import { useUserData } from "@/context/UserDataContext";
 import { Fingerprint, RefreshCw } from "lucide-react";
+import { SupabaseService } from "@/lib/supabaseService";
 
 export default function Home() {
   const router = useRouter();
   const { t } = useLanguage();
   const { webtoons } = useContent();
-  const { userData, addCreatorTransaction } = useUserData();
-  const { user, authenticate, loading, createPayment } = usePi();
-  const [activeTab, setActiveTab] = useState("Nuevo");
+  const { userData, supportArtistWithInks } = useUserData();
+  const { user, authenticate, loading } = usePi();
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [supportingArtist, setSupportingArtist] = useState<string | null>(null);
-  const [currentPiValue, setCurrentPiValue] = useState<number | null>(null);
+  const [topArtists, setTopArtists] = useState<any[]>([]);
 
-  // Fetch Pi Price
-  React.useEffect(() => {
-    const fetchPiPrice = async () => {
-      try {
-        const response = await fetch('/api/price');
-        const data = await response.json();
-        if (data.price) {
-          setCurrentPiValue(data.price);
-        }
-      } catch (error) {
-        console.error("Error fetching Pi price:", error);
+  // Fetch top artists
+  useEffect(() => {
+    const fetchArtists = async () => {
+      const artists = await SupabaseService.getTopArtists(4);
+      if (artists.length > 0) {
+        setTopArtists(artists);
+      } else {
+        // Fallback for UI during development
+        // If the current user is Adriespi, use their real profile image
+        const isAdriespi = userData?.username === 'Adriespi' || userData?.username === 'adriespi';
+        const adriespiImage = isAdriespi && userData?.profileImage
+          ? userData.profileImage
+          : null;
+
+        setTopArtists([
+          { name: 'Adriespi', inks: '12.5k', works: 5, color: 'from-amber-400 to-orange-500', profileImage: adriespiImage },
+          { name: 'InkMaster', inks: '10.2k', works: 3, color: 'from-slate-300 to-slate-500', profileImage: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80' },
+          { name: 'PioneerArt', inks: '8.9k', works: 8, color: 'from-orange-300 to-orange-700', profileImage: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&q=80' },
+          { name: 'CreativeSoul', inks: '7.4k', works: 2, color: 'from-indigo-400 to-pi-purple', profileImage: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80' }
+        ]);
       }
     };
-    fetchPiPrice();
-    const interval = setInterval(fetchPiPrice, 60000);
-    return () => clearInterval(interval);
-  }, []);
+    fetchArtists();
+  }, [userData]);
 
   const EXCLUDED_CATEGORIES = ['hentai', 'gore', '+18', 'adult', 'erotic', 'ecchi', 'nsfw'];
 
@@ -64,54 +71,29 @@ export default function Home() {
 
   const topRankedWebtoons = [...displayWebtoons].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 4);
 
-  const handleProtectedNavigation = (path: string) => {
-    if (user) {
-      router.push(path);
-    } else {
-      setShowLoginModal(true);
-    }
-  };
-
   const handleArtistSupport = async (artist: any) => {
     if (!user) {
       setShowLoginModal(true);
       return;
     }
 
-    if (!currentPiValue) {
-      alert("Esperando cotización de Pi...");
+    if (userData.balance < 50) {
+      alert(t('insufficient_inks_desc'));
       return;
     }
-
-    // Donation amount equivalent to $1.00 USD
-    const PI_AMOUNT = Number((1.0 / currentPiValue).toFixed(4));
 
     setSupportingArtist(artist.name);
 
     try {
-      await createPayment(
-        PI_AMOUNT,
-        `Donación Inktoons para ${artist.name}`,
-        {
-          artistName: artist.name,
-          type: "ARTIST_SUPPORT",
-          usdValue: 1.0
-        }
-      );
-
-      addCreatorTransaction({
-        origin: user.username || "Pionero",
-        work: `Apoyo a ${artist.name}`,
-        type: 'DONATION',
-        amount: PI_AMOUNT
-      });
-
-      alert(`¡Gracias! Has apoyado a ${artist.name} con ${PI_AMOUNT} Pi.`);
-    } catch (error: any) {
-      console.error("Error en el pago:", error);
-      if (error?.message !== "CANCELLED_BY_USER") {
-        alert("Hubo un error al procesar el pago. Inténtalo de nuevo.");
+      const success = await supportArtistWithInks(artist.name);
+      if (success) {
+        alert(t('creator_donate_success'));
+      } else {
+        alert(t('error_processing_payment'));
       }
+    } catch (error: any) {
+      console.error("Error supporting artist:", error);
+      alert(t('error_processing_payment'));
     } finally {
       setSupportingArtist(null);
     }
@@ -120,7 +102,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-pi-gold selection:text-black transition-colors duration-300 pb-20">
-      {/* Top Navbar */}
       <TopNavbar />
 
       <main className="max-w-[1200px] mx-auto px-4 py-6">
@@ -303,12 +284,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {[
-              { name: 'Adriespi', inks: '12.5k', works: 5, color: 'from-amber-400 to-orange-500' },
-              { name: 'InkMaster', inks: '10.2k', works: 3, color: 'from-slate-300 to-slate-500' },
-              { name: 'PioneerArt', inks: '8.9k', works: 8, color: 'from-orange-300 to-orange-700' },
-              { name: 'CreativeSoul', inks: '7.4k', works: 2, color: 'from-indigo-400 to-pi-purple' }
-            ].map((artist, i) => (
+            {topArtists.map((artist, i) => (
               <motion.div
                 key={artist.name}
                 whileHover={{ scale: 1.05 }}
@@ -317,9 +293,13 @@ export default function Home() {
                 <div className="relative mb-4 cursor-pointer" onClick={() => router.push(`/creator/${artist.name}`)}>
                   <div className={`w-24 h-24 rounded-full bg-gradient-to-tr ${artist.color} p-1 shadow-lg group-hover:scale-105 transition-transform`}>
                     <div className="w-full h-full rounded-full bg-white flex items-center justify-center overflow-hidden">
-                      <div className="w-full h-full bg-pi-purple/10 flex items-center justify-center text-pi-purple text-2xl font-black">
-                        {artist.name[0]}
-                      </div>
+                      {artist.profileImage ? (
+                        <img src={artist.profileImage} alt={artist.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-pi-purple/10 flex items-center justify-center text-pi-purple text-2xl font-black">
+                          {artist.name[0]}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="absolute -bottom-2 right-0 bg-white shadow-md w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border border-slate-50">
@@ -337,7 +317,7 @@ export default function Home() {
                     <img src="/icon.png" className="w-3 h-3 object-contain" />
                     {artist.inks} Inks recibidos
                   </span>
-                  <span className="text-slate-400">{artist.works} Obras publicadas</span>
+                  {artist.works > 0 && <span className="text-slate-400">{artist.works} Obras publicadas</span>}
                 </div>
                 <button
                   onClick={() => handleArtistSupport(artist)}
