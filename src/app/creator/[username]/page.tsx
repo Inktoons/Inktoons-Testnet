@@ -406,7 +406,7 @@ export default function CreatorProfilePage() {
                             <div className="space-y-6">
                                 <h3 className="text-[12px] font-black text-pi-purple uppercase tracking-[0.2em] flex items-center gap-2 ml-4">
                                     <div className="w-1.5 h-1.5 rounded-full bg-pi-purple" />
-                                    {t('creator_tips_title_pi')}
+                                    ENVIAR PROPINAS AL CREADOR
                                 </h3>
 
                                 <div className="bg-white rounded-[40px] p-8 shadow-xl shadow-slate-200/50 border border-slate-50 relative overflow-hidden">
@@ -419,11 +419,11 @@ export default function CreatorProfilePage() {
                                             <div className="flex items-center justify-between mb-6">
                                                 <div>
                                                     <h4 className="text-sm font-black text-slate-800 uppercase tracking-wide">
-                                                        {t('creator_tips_title_pi')}
+                                                        CONFIGURAR PROPINAS
                                                     </h4>
                                                     <p className="text-[10px] bg-indigo-100 text-indigo-600 font-bold px-2 py-0.5 rounded inline-block mt-1">DIRECTO</p>
                                                     <p className="text-[10px] text-slate-400 font-bold mt-2 max-w-[220px] leading-relaxed">
-                                                        Habilita este botón para recibir apoyo directo de tus lectores sin comisiones de Inktoons.
+                                                        Habilita este botón para recibir apoyo directo de tus lectores.
                                                     </p>
                                                 </div>
 
@@ -434,8 +434,6 @@ export default function CreatorProfilePage() {
                                                             alert("Debes configurar tu billetera Pi para activar las propinas. Ingresa tu dirección abajo.");
                                                             return;
                                                         }
-                                                        // Toggle logic would go here if we had a dedicated enabled state
-                                                        // For now the presence of wallet implies enabled, but user asked for a specific toggle UI
                                                     }}
                                                     className={`w-14 h-8 rounded-full flex items-center transition-colors duration-300 px-1 ${editedWalletAddress ? 'bg-pi-purple' : 'bg-slate-200'}`}
                                                 >
@@ -459,7 +457,7 @@ export default function CreatorProfilePage() {
                                                 </div>
                                             </div>
                                             <p className="text-[10px] text-slate-400 font-bold mt-3 px-1 text-center">
-                                                * {t('profile_wallet_autosave')}
+                                                * Se guardará automáticamente al salir.
                                             </p>
                                         </div>
                                     ) : (
@@ -468,11 +466,11 @@ export default function CreatorProfilePage() {
                                                 <div className="w-full mb-4 flex items-center justify-between">
                                                     <div>
                                                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
-                                                            PROPINA DIRECTA
+                                                            ESTADO
                                                         </span>
                                                         <div className="flex items-center gap-1.5">
                                                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                                            <span className="text-xs font-bold text-green-600 uppercase">Habilitado</span>
+                                                            <span className="text-xs font-bold text-green-600 uppercase">Recibiendo Propinas</span>
                                                         </div>
                                                     </div>
                                                     <div className="bg-white px-3 py-1 rounded-lg border border-slate-100 shadow-sm">
@@ -489,7 +487,7 @@ export default function CreatorProfilePage() {
                                     {!isEditing && creatorData?.walletAddress ? (
                                         <>
                                             <div className="text-center mb-8">
-                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{t('creator_tips_sub')}</p>
+                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">APOYA AL CREADOR</p>
                                             </div>
 
                                             {donationSuccess ? (
@@ -547,14 +545,12 @@ export default function CreatorProfilePage() {
                                         )
                                     )}
 
-                                    {/* Info Section */}
+                                    {/* Info Section - Simplified and generic */}
                                     <div className="mt-12 bg-slate-900 rounded-[30px] p-8 text-white text-center relative overflow-hidden">
                                         <div className="absolute top-0 right-0 w-32 h-32 bg-pi-purple/20 rounded-full blur-2xl -mr-16 -mt-16" />
-                                        <h4 className="text-lg font-black mb-2">{t('creator_tips_info_title')}</h4>
+                                        <h4 className="text-lg font-black mb-2">Apoyo Directo</h4>
                                         <p className="text-slate-400 font-medium text-xs leading-relaxed">
-                                            {t('creator_tips_info_desc')}
-                                            <br />
-                                            <span className="text-pi-gold font-black uppercase inline-block mt-2">{t('creator_tips_no_commission')}</span>
+                                            Tus donaciones ayudan al creador a seguir produciendo contenido de calidad.
                                         </p>
                                     </div>
                                 </div>

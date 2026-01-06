@@ -627,18 +627,7 @@ export default function MangaDetailPage() {
                             </div>
 
                             {/* Donation Section Removed by User Request */}
-                            <div className="mt-8 bg-slate-900 rounded-[30px] p-8 text-white text-center shadow-2xl relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 w-64 h-64 bg-pi-purple/20 rounded-full blur-3xl -mr-32 -mt-32" />
-                                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6">
-                                    <Info size={32} className="text-white/80" />
-                                </div>
-                                <h4 className="text-xl font-black mb-3">{t('creator_tips_info_title')}</h4>
-                                <p className="text-slate-400 font-medium text-sm leading-relaxed px-2">
-                                    {t('creator_tips_info_desc')}
-                                    <br />
-                                    <span className="text-pi-gold font-black uppercase inline-block mt-2">{t('creator_tips_no_commission')}</span>
-                                </p>
-                            </div>
+
 
                             {/* Recommendations */}
                             <div>
