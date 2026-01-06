@@ -22,7 +22,7 @@ export default function CreatorProfilePage() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
-    const username = params.username as string;
+    const username = decodeURIComponent(params.username as string);
     const { webtoons, deleteWebtoon } = useContent();
     const { t } = useLanguage();
     const { createPayment, user: currentUser } = usePi();
@@ -385,7 +385,14 @@ export default function CreatorProfilePage() {
                                             <img src={work.imageUrl} alt={work.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                         </div>
                                         <div className="flex-1 flex flex-col justify-center gap-1">
-                                            <p className="text-[10px] font-black text-pi-purple uppercase tracking-widest">{work.category}</p>
+                                            <p className="text-[10px] font-black text-pi-purple uppercase tracking-widest">
+                                                {(() => {
+                                                    const raw = work.category || "";
+                                                    const key = raw.toLowerCase().startsWith('genre_') ? raw : `genre_${raw.toLowerCase().replace(/-/g, '_')}`;
+                                                    const translated = t(key as any);
+                                                    return translated !== key ? translated : raw.replace(/-/g, ' ');
+                                                })()}
+                                            </p>
                                             <h4 className="font-bold text-sm text-slate-900 line-clamp-2 leading-tight">{work.title}</h4>
                                             <div className="flex items-center gap-3 text-[10px] text-gray-400 font-bold mt-1">
                                                 <span className="flex items-center gap-1"><Star size={10} className="text-pi-gold" fill="currentColor" /> {work.rating?.toFixed(1) || "0.0"}</span>

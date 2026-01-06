@@ -344,8 +344,8 @@ export class SupabaseService {
             const { data, error } = await supabase
                 .from('user_data')
                 .select('*')
-                .eq('username', username)
-                .single();
+                .ilike('username', username)
+                .maybeSingle();
 
             if (error) throw error;
             if (!data) return null;
