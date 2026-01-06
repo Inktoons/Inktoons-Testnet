@@ -224,9 +224,11 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         setUserData(prev => ({ ...prev, censorshipEnabled: !prev.censorshipEnabled }));
     }, []);
 
-    const updateWalletAddress = useCallback((address: string) => {
+    const updateWalletAddress = useCallback(async (address: string) => {
+        if (!user) return;
         setUserData(prev => ({ ...prev, walletAddress: address }));
-    }, []);
+        await SupabaseService.saveUserData(user.uid, { walletAddress: address });
+    }, [user]);
 
     const toggleLikeChapter = useCallback((webtoonId: string, chapterId: string) => {
         setUserData(prev => {
