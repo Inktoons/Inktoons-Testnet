@@ -12,6 +12,10 @@ export const translations = {
         common_save: "Guardar",
         common_cancel: "Cancelar",
         common_edit: "Editar",
+        profile_wallet_save: "Guardar",
+        profile_wallet_saved: "¡Guardado exitosamente!",
+
+
         nav_discover: "Descubre",
         nav_connect: "Conectar Pi",
 
@@ -415,6 +419,8 @@ export const translations = {
         common_save: "Save",
         common_cancel: "Cancel",
         common_edit: "Edit",
+        profile_wallet_save: "Save",
+        profile_wallet_saved: "Saved successfully!",
         nav_discover: "Discover",
         nav_connect: "Connect Pi",
 
@@ -813,6 +819,8 @@ export const translations = {
         nav_upload: "Enviar",
         nav_library: "Biblioteca",
         nav_profile: "Perfil",
+        profile_wallet_save: "Salvar",
+        profile_wallet_saved: "Salvo com sucesso!",
         nav_discover: "Descobrir",
         nav_connect: "Conectar Pi",
 
@@ -1203,6 +1211,8 @@ export const translations = {
         nav_upload: "Télécharger",
         nav_library: "Bibliothèque",
         nav_profile: "Profil",
+        profile_wallet_save: "Enregistrer",
+        profile_wallet_saved: "Enregistré avec succès !",
         nav_discover: "Découvrir",
         nav_connect: "Connecter Pi",
 
@@ -1593,6 +1603,8 @@ export const translations = {
         nav_upload: "업로드",
         nav_library: "라이브러리",
         nav_profile: "프로필",
+        profile_wallet_save: "저장",
+        profile_wallet_saved: "성공적으로 저장되었습니다!",
         nav_discover: "발견",
         nav_connect: "Pi 연결",
 

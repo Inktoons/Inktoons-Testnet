@@ -33,8 +33,7 @@ import {
     XCircle,
     Languages,
     TrendingUp,
-    Check,
-    Loader2
+    Check
 } from "lucide-react";
 import { useContent } from "@/context/ContentContext";
 import { useMissions } from "@/context/MissionContext";
@@ -252,7 +251,7 @@ export default function ProfilePage() {
                                 <img src={ink.imageUrl} className="w-10 h-14 rounded object-cover shadow-sm" />
                                 <div className="flex-1 py-1">
                                     <p className="text-xs font-bold text-slate-900 line-clamp-1">{ink.title}</p>
-                                    <p className="text-[9px] font-bold text-pi-purple/60 uppercase">{ink.category}</p>
+                                    <p className="text-[9px] font-bold text-pi-purple/60 uppercase">{t(ink.category.toLowerCase() as any)}</p>
                                 </div>
                             </div>
                         ))}
@@ -456,7 +455,7 @@ export default function ProfilePage() {
                                                         <img src={ink.imageUrl} className="w-full h-full object-cover" />
                                                     </div>
                                                     <div className="flex-1 flex flex-col justify-center gap-1">
-                                                        <p className="text-[9px] font-black text-pi-purple uppercase tracking-widest">{ink.category}</p>
+                                                        <p className="text-[9px] font-black text-pi-purple uppercase tracking-widest">{t(ink.category.toLowerCase() as any)}</p>
                                                         <h4 className="font-bold text-sm text-slate-900 line-clamp-1">{ink.title}</h4>
                                                         <div className="flex items-center gap-3 text-[10px] text-slate-400">
                                                             <span className="flex items-center gap-1"><Star size={10} className="text-pi-gold" fill="currentColor" /> {ink.rating?.toFixed(1) || "0.0"}</span>
@@ -567,7 +566,7 @@ export default function ProfilePage() {
                                                 <div className="flex-1">
                                                     {saveSuccess && (
                                                         <span className="text-[10px] font-black text-green-500 flex items-center gap-1 animate-pulse">
-                                                            <Check size={12} /> ¡Guardado exitosamente!
+                                                            <Check size={12} /> {t('profile_wallet_saved')}
                                                         </span>
                                                     )}
                                                 </div>
@@ -582,7 +581,7 @@ export default function ProfilePage() {
                                                     ) : (
                                                         <Save size={12} />
                                                     )}
-                                                    Guardar
+                                                    {t('profile_wallet_save')}
                                                 </button>
                                             </div>
                                         </div>

@@ -90,13 +90,12 @@ export default function ChapterReaderPage() {
             setIsSubmittingDonation(true);
             await createPayment(
                 Number(finalAmount),
-                t('creator_donate_memo').replace('{username}', webtoon?.author || ""),
+                `Tip for ${webtoon?.author || "Creator"}`,
                 {
                     type: "DIRECT_DONATION",
                     webtoon_id: id,
                     chapter_id: chapterId,
                     recipient_username: webtoon?.author || "",
-                    // Note: No recipient_uid means it goes to main App Wallet, which is what we want.
                 },
                 async () => {
                     // Update internal ledger and add transaction record
@@ -353,7 +352,7 @@ export default function ChapterReaderPage() {
                         )}
 
                         {/* Chapter Specific Tips Section */}
-                        {(chapter.isTipsEnabled && authorData?.walletAddress) && (
+                        {(chapter.isTipsEnabled) && (
                             <div className="px-6 py-12 border-t border-white/5 bg-gradient-to-b from-black/40 to-black/60">
                                 <div className="max-w-md mx-auto bg-gradient-to-br from-neutral-900 to-neutral-950 rounded-[30px] p-8 shadow-2xl border border-white/5 relative overflow-hidden text-center">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-pi-purple/10 rounded-full blur-3xl -mr-16 -mt-16" />

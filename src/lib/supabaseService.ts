@@ -553,28 +553,4 @@ export class SupabaseService {
             return false;
         }
     }
-    /**
-     * Process a full withdrawal for a creator via API (Server-side Pi Transaction)
-     */
-    static async processWithdrawal(username: string): Promise<{ success: boolean; amount: number }> {
-        try {
-            const response = await fetch('/api/pi/withdraw', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username })
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                console.error("Withdrawal API Error:", data.error);
-                return { success: false, amount: 0 };
-            }
-
-            return { success: true, amount: data.amount };
-        } catch (error) {
-            console.error('Error processing withdrawal:', error);
-            return { success: false, amount: 0 };
-        }
-    }
 }
