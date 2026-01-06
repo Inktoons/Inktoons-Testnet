@@ -553,4 +553,48 @@ export class SupabaseService {
             return false;
         }
     }
+
+    /**
+     * Process a withdrawal for a creator
+     */
+    static async processWithdrawal(username: string): Promise<{ success: boolean; amount: number }> {
+        if (!supabase) return { success: false, amount: 0 };
+        try {
+            // 1. Get current balance
+            const { data, error: fetchError } = await supabase
+                .from('user_data')
+                .select('creator_balance')
+                .eq('username', username)
+                .single();
+
+            if (fetchError) throw fetchError;
+
+            const currentBalance = data.creator_balance || 0;
+            if (currentBalance <= 0) return { success: false, amount: 0 };
+
+            const finalAmount = currentBalance * 0.85; // Deduct 15% fee
+
+            // 2. Add withdrawal transaction
+            await this.addCreatorTransaction(username, {
+                type: 'WITHDRAWAL',
+                origin: 'Inktoons Platform',
+                work: 'Withdrawal',
+                amount: finalAmount,
+            });
+
+            // 3. Reset balance
+            const { error: updateError } = await supabase
+                .from('user_data')
+                .update({ creator_balance: 0 })
+                .eq('username', username);
+
+            if (updateError) throw updateError;
+
+            return { success: true, amount: finalAmount };
+
+        } catch (error) {
+            console.error('Error processing withdrawal:', error);
+            return { success: false, amount: 0 };
+        }
+    }
 }
