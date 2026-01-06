@@ -33,7 +33,8 @@ import {
     XCircle,
     Languages,
     TrendingUp,
-    Check
+    Check,
+    Loader2
 } from "lucide-react";
 import { useContent } from "@/context/ContentContext";
 import { useMissions } from "@/context/MissionContext";
