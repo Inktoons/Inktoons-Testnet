@@ -372,8 +372,8 @@ export default function ProfilePage() {
                                                 </div>
                                             )}
                                         </div>
-                                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mb-3">
-                                            {userData.isFounder ? t('profile_founder_desc') : t('profile_pioneer_desc')}
+                                        <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${username === 'adriespi' ? 'text-amber-500' : 'text-slate-400'}`}>
+                                            {username === 'adriespi' ? 'Creador Inktoons' : (userData.isFounder ? t('profile_founder_desc') : t('profile_pioneer_desc'))}
                                         </p>
                                         <button
                                             onClick={() => router.push(`/creator/${username}?edit=true`)}

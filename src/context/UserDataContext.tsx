@@ -226,8 +226,20 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     const updateWalletAddress = useCallback(async (address: string) => {
         if (!user) return;
-        setUserData(prev => ({ ...prev, walletAddress: address }));
-        await SupabaseService.saveUserData(user.uid, { walletAddress: address });
+
+        // Auto-enable tips if wallet is set
+        const shouldEnableTips = !!address && address.length > 0;
+
+        setUserData(prev => ({
+            ...prev,
+            walletAddress: address,
+            tipsEnabled: shouldEnableTips ? true : prev.tipsEnabled // Enable if address present, otherwise keep current
+        }));
+
+        await SupabaseService.saveUserData(user.uid, {
+            walletAddress: address,
+            tipsEnabled: shouldEnableTips ? true : undefined
+        });
     }, [user]);
 
     const toggleLikeChapter = useCallback((webtoonId: string, chapterId: string) => {

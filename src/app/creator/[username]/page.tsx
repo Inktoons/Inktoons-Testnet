@@ -26,7 +26,7 @@ export default function CreatorProfilePage() {
     const { webtoons, deleteWebtoon } = useContent();
     const { t } = useLanguage();
     const { createPayment, user: currentUser } = usePi();
-    const { userData: myUserData, updateCreatorBio, updateWalletAddress, updateProfileBanner } = useUserData();
+    const { userData: myUserData, updateCreatorBio, updateWalletAddress, updateProfileBanner, toggleTips } = useUserData();
 
     const [creatorData, setCreatorData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -60,6 +60,7 @@ export default function CreatorProfilePage() {
                     creatorDescription: myUserData.creatorDescription,
                     walletAddress: myUserData.walletAddress,
                     profileBanner: myUserData.profileBanner,
+                    tipsEnabled: myUserData.tipsEnabled,
                     id: currentUser?.uid
                 });
                 setEditedBio(myUserData.creatorDescription || "");
@@ -72,13 +73,14 @@ export default function CreatorProfilePage() {
                     username: username,
                     creatorDescription: "",
                     walletAddress: "",
-                    profileBanner: ""
+                    profileBanner: "",
+                    tipsEnabled: false
                 });
             }
             setLoading(false);
         };
         if (username) fetchCreator();
-    }, [username, isMyProfile, myUserData.creatorDescription, myUserData.walletAddress, myUserData.profileBanner, currentUser]);
+    }, [username, isMyProfile, myUserData.creatorDescription, myUserData.walletAddress, myUserData.profileBanner, myUserData.tipsEnabled, currentUser]);
 
     const creatorWorks = webtoons.filter(w => w.author === username);
     const availableBanners = creatorWorks.filter(w => w.bannerUrl).map(w => w.bannerUrl!);
@@ -124,7 +126,22 @@ export default function CreatorProfilePage() {
                     recipient_uid: creatorData?.id,
                     recipient_username: username
                 },
-                () => {
+                async () => {
+                    try {
+                        // Increment Pi balance
+                        await SupabaseService.incrementArtistPi(username, Number(finalAmount));
+
+                        // Add transaction to history
+                        await SupabaseService.addCreatorTransaction(username, {
+                            type: 'DONATION',
+                            origin: currentUser?.username || 'Usuario Anónimo',
+                            work: `Donación al Creador`,
+                            amount: Number(finalAmount),
+                        });
+                    } catch (err) {
+                        console.error("Error updating creator balance:", err);
+                    }
+
                     setDonationSuccess(true);
                     setTimeout(() => {
                         setDonationSuccess(false);
@@ -212,9 +229,9 @@ export default function CreatorProfilePage() {
                         <div className="text-center">
                             <h1 className="text-3xl font-black text-slate-900 mb-1 drop-shadow-sm">{username}</h1>
                             <div className="flex flex-col items-center gap-2 mb-8">
-                                <span className="px-4 py-1.5 bg-pi-gold/10 text-pi-gold-dark text-[10px] font-black rounded-full uppercase tracking-widest border border-pi-gold/20 shadow-sm flex items-center gap-1.5 backdrop-blur-sm">
+                                <span className={`px-4 py-1.5 text-[10px] font-black rounded-full uppercase tracking-widest border shadow-sm flex items-center gap-1.5 backdrop-blur-sm ${username === 'adriespi' ? 'bg-amber-100 text-amber-600 border-amber-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>
                                     <ShieldCheck size={12} fill="currentColor" />
-                                    {t('profile_pioneer_desc')}
+                                    {username === 'adriespi' ? 'Creador Inktoons' : t('profile_pioneer_desc')}
                                 </span>
 
                                 {isMyProfile && isEditing && (
@@ -434,11 +451,12 @@ export default function CreatorProfilePage() {
                                                             alert("Debes configurar tu billetera Pi para activar las propinas. Ingresa tu dirección abajo.");
                                                             return;
                                                         }
+                                                        toggleTips(!myUserData.tipsEnabled);
                                                     }}
-                                                    className={`w-14 h-8 rounded-full flex items-center transition-colors duration-300 px-1 ${editedWalletAddress ? 'bg-pi-purple' : 'bg-slate-200'}`}
+                                                    className={`w-14 h-8 rounded-full flex items-center transition-colors duration-300 px-1 ${myUserData.tipsEnabled ? 'bg-pi-purple' : 'bg-slate-200'}`}
                                                 >
-                                                    <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${editedWalletAddress ? 'translate-x-6' : 'translate-x-0'}`}>
-                                                        {!editedWalletAddress && <Lock size={12} className="text-slate-300" />}
+                                                    <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 flex items-center justify-center ${myUserData.tipsEnabled ? 'translate-x-6' : 'translate-x-0'}`}>
+                                                        {!myUserData.tipsEnabled && <Lock size={12} className="text-slate-300" />}
                                                     </div>
                                                 </button>
                                             </div>
@@ -483,8 +501,8 @@ export default function CreatorProfilePage() {
                                         )
                                     )}
 
-                                    {/* Donation UI - ONLY if wallet configured and NOT editing */}
-                                    {!isEditing && creatorData?.walletAddress ? (
+                                    {/* Donation UI - ONLY if wallet configured and enabled and NOT editing */}
+                                    {!isEditing && creatorData?.walletAddress && creatorData?.tipsEnabled ? (
                                         <>
                                             <div className="text-center mb-8">
                                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">APOYA AL CREADOR</p>
