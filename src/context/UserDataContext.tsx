@@ -336,9 +336,12 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         });
     }, []);
 
-    const updateCreatorBio = useCallback((bio: string) => {
+    const updateCreatorBio = useCallback(async (bio: string) => {
         setUserData(prev => ({ ...prev, creatorDescription: bio }));
-    }, []);
+        if (user?.uid) {
+            await SupabaseService.saveUserData(user.uid, { creatorDescription: bio });
+        }
+    }, [user]);
 
     const toggleTips = useCallback((enabled: boolean) => {
         setUserData(prev => ({ ...prev, tipsEnabled: enabled }));
