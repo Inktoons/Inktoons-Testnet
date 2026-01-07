@@ -49,6 +49,16 @@ export default function CreatorProfilePage() {
         }
     }, [isMyProfile, searchParams]);
 
+    // Force sync sensitive data for searchability
+    useEffect(() => {
+        if (isMyProfile && currentUser?.uid && username) {
+            SupabaseService.saveUserData(currentUser.uid, {
+                username: username, // Ensure username is saved for search
+                tipsEnabled: myUserData.tipsEnabled // Ensure tips status is saved
+            });
+        }
+    }, [isMyProfile, currentUser, username, myUserData.tipsEnabled]);
+
     useEffect(() => {
         const fetchCreator = async () => {
             setLoading(true);
@@ -79,8 +89,8 @@ export default function CreatorProfilePage() {
             }
             setLoading(false);
         };
-        if (username) fetchCreator();
-    }, [username, isMyProfile, myUserData.creatorDescription, myUserData.walletAddress, myUserData.profileBanner, myUserData.tipsEnabled, currentUser]);
+        fetchCreator();
+    }, [username, isMyProfile, myUserData, currentUser]);
 
     const creatorWorks = webtoons.filter(w => w.author === username);
     const availableBanners = creatorWorks.filter(w => w.bannerUrl).map(w => w.bannerUrl!);

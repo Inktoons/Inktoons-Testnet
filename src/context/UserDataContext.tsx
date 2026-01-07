@@ -153,13 +153,18 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         if (loading) return;
         localStorage.setItem("inktoons_user_data", JSON.stringify(userData));
         if (user?.uid) {
-            // Sync username if missing or changed
+            // Sync username if missing or changed in state
             if (user.username && userData.username !== user.username) {
                 setUserData(prev => ({ ...prev, username: user.username }));
             }
 
             const timeoutId = setTimeout(() => {
-                SupabaseService.saveUserData(user.uid, userData);
+                // FORCE save username to Supabase to ensure DB consistency for all users
+                const payloadToSave = {
+                    ...userData,
+                    username: user.username || userData.username
+                };
+                SupabaseService.saveUserData(user.uid, payloadToSave);
             }, 1000);
             return () => clearTimeout(timeoutId);
         }
