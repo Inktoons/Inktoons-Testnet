@@ -470,37 +470,20 @@ export class SupabaseService {
     }
 
     /**
-     * Increment an artist's creator_balance (Pi) by username
+     * Increment an artist's creator_balance (Pi) using secure RPC
+     * @deprecated Use addCreatorTransaction instead which handles both balance and history
      */
     static async incrementArtistPi(username: string, amount: number): Promise<boolean> {
-        if (!supabase) return false;
-        try {
-            // First get current balance
-            const { data, error: fetchError } = await supabase
-                .from('user_data')
-                .select('creator_balance')
-                .eq('username', username)
-                .single();
-
-            if (fetchError) throw fetchError;
-
-            const newBalance = (data.creator_balance || 0) + amount;
-
-            const { error: updateError } = await supabase
-                .from('user_data')
-                .update({ creator_balance: newBalance })
-                .eq('username', username);
-
-            if (updateError) throw updateError;
-            return true;
-        } catch (error) {
-            console.error('Error incrementing artist Pi:', error);
-            return false;
-        }
+        // This is now handled within addCreatorTransaction/processCreatorDonation via RPC
+        // to ensure atomicity and bypass RLS. We return true to maintain compatibility
+        // with existing flows that call this before addCreatorTransaction.
+        console.log("incrementArtistPi called - delegating to transaction RPC");
+        return true;
     }
 
     /**
-     * Add a new transaction to creator's transaction history
+     * Add a new transaction to creator's transaction history AND update balance
+     * Uses RPC to bypass RLS and ensure atomic update
      */
     static async addCreatorTransaction(
         creatorUsername: string,
@@ -515,41 +498,22 @@ export class SupabaseService {
     ): Promise<boolean> {
         if (!supabase) return false;
         try {
-            // Get current transactions
-            const { data, error: fetchError } = await supabase
-                .from('user_data')
-                .select('creator_transactions')
-                .eq('username', creatorUsername)
-                .single();
-
-            if (fetchError) throw fetchError;
-
-            const currentTransactions = data.creator_transactions || [];
-
-            // Create new transaction entry
             const newTransaction = {
                 id: Math.random().toString(36).substr(2, 9),
-                type: transaction.type,
-                origin: transaction.origin,
-                work: transaction.work,
-                amount: transaction.amount,
-                date: new Date().toISOString(),
-                webtoonId: transaction.webtoonId,
-                chapterId: transaction.chapterId
+                ...transaction,
+                date: new Date().toISOString()
             };
 
-            // Append to transactions array
-            const updatedTransactions = [newTransaction, ...currentTransactions];
+            const { error } = await supabase.rpc('process_creator_donation', {
+                p_username: creatorUsername,
+                p_amount: transaction.amount,
+                p_transaction: newTransaction
+            });
 
-            const { error: updateError } = await supabase
-                .from('user_data')
-                .update({ creator_transactions: updatedTransactions })
-                .eq('username', creatorUsername);
-
-            if (updateError) throw updateError;
+            if (error) throw error;
             return true;
         } catch (error) {
-            console.error('Error adding creator transaction:', error);
+            console.error('Error adding creator transaction via RPC:', error);
             return false;
         }
     }
