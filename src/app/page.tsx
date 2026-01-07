@@ -33,14 +33,27 @@ export default function Home() {
         setTopArtists(artists);
       } else {
         // Fallback for UI during development
-        // If the current user is Adriespi, use their real profile image
-        const isAdriespi = userData?.username === 'Adriespi' || userData?.username === 'adriespi';
-        const adriespiImage = isAdriespi && userData?.profileImage
-          ? userData.profileImage
-          : null;
+        // Try to fetch real Adriespi image from Supabase to correctly display it for visitors
+        let realAdriespiImage = null;
+        try {
+          const adriespiUser = await SupabaseService.getUserByUsername('adriespi');
+          if (adriespiUser?.profileImage) {
+            realAdriespiImage = adriespiUser.profileImage;
+          }
+        } catch (e) {
+          console.error("Error fetching adriespi image for fallback:", e);
+        }
+
+        // If not found in DB but current user is Adriespi, use local state as backup
+        if (!realAdriespiImage) {
+          const isAdriespi = userData?.username === 'Adriespi' || userData?.username === 'adriespi';
+          if (isAdriespi && userData?.profileImage) {
+            realAdriespiImage = userData.profileImage;
+          }
+        }
 
         setTopArtists([
-          { name: 'Adriespi', inks: '12.5k', works: 5, color: 'from-amber-400 to-orange-500', profileImage: adriespiImage },
+          { name: 'Adriespi', inks: '12.5k', works: 5, color: 'from-amber-400 to-orange-500', profileImage: realAdriespiImage },
           { name: 'InkMaster', inks: '10.2k', works: 3, color: 'from-slate-300 to-slate-500', profileImage: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80' },
           { name: 'PioneerArt', inks: '8.9k', works: 8, color: 'from-orange-300 to-orange-700', profileImage: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&q=80' },
           { name: 'CreativeSoul', inks: '7.4k', works: 2, color: 'from-indigo-400 to-pi-purple', profileImage: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&q=80' }
